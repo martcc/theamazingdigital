@@ -8,9 +8,20 @@ from flask import Flask, render_template, request, jsonify, session
 import urllib.request
 import urllib.error
 import json
-import ollama
 import os
-import memory
+import urllib.request
+
+try:
+    import ollama
+    OLLAMA_AVAILABLE = True
+except:
+    OLLAMA_AVAILABLE = False
+
+try:
+    import memory
+    MEMORY_AVAILABLE = True
+except:
+    MEMORY_AVAILABLE = False
 
 app = Flask(__name__)
 app.secret_key = "simulation_secret_key_change_this"
