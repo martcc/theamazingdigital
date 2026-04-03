@@ -6,172 +6,227 @@
   <title>The Simulation</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    :root{--bg:#08080f;--surface:#0f0f1a;--border:#1e1e30;--accent:#7c6fff;--pink:#ff6fb0;--text:#e0e0e0;--muted:#555;--green:#4fffb0;--red:#ff6b6b;--yellow:#ffd96b}
-    body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100vh}
-    nav{border-bottom:1px solid var(--border);padding:.8rem 2rem;display:flex;align-items:center;justify-content:space-between}
-    .logo{font-size:.72rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}.logo span{color:var(--accent)}
-    .links{display:flex;gap:1.5rem}
-    .links a{font-size:.68rem;color:var(--muted);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .2s}
-    .links a:hover,.links a.on{color:var(--accent)}
-    .page{display:none;padding:1.5rem 2rem;max-width:1100px;margin:0 auto}
-    .page.on{display:block}
+    :root{
+      --bg:#08080f;--surface:#0f0f1a;--border:#1a1a2e;
+      --accent:#7c6fff;--pink:#ff6fb0;--text:#e0e0e0;
+      --muted:#444;--green:#4fffb0;--red:#ff6b6b;--yellow:#ffd96b;
+    }
+    html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',monospace}
 
-    /* META */
-    .meta{display:flex;gap:2rem;margin-bottom:1.5rem;padding:.7rem 1rem;background:var(--surface);border:1px solid var(--border);font-size:.72rem}
-    .meta .lbl{color:var(--muted);margin-right:.3rem}
-    .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+    /* ── TOP BAR ── */
+    #topbar{
+      position:fixed;top:0;left:0;right:0;height:48px;
+      background:rgba(8,8,15,.92);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;
+      padding:0 1.5rem;z-index:300;backdrop-filter:blur(8px);
+    }
+    .logo{font-size:.7rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+    .logo span{color:var(--accent)}
+    .nav{display:flex;gap:1.2rem}
+    .nav a{font-size:.65rem;color:var(--muted);text-decoration:none;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:.25rem .5rem;transition:color .2s}
+    .nav a:hover,.nav a.on{color:var(--accent)}
+    .meta{display:flex;gap:1.5rem;font-size:.65rem}
+    .meta .lbl{color:var(--muted);margin-right:.25rem}
+    .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
     .dot.running{background:var(--green);animation:pulse 2s infinite}
     .dot.sleeping{background:var(--yellow)}
-    .dot.stopped{background:var(--red)}
+    .dot.stopped,dot.unknown{background:var(--red)}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-    /* MAP */
-    .map-wrap{display:flex;justify-content:center;align-items:stretch;gap:0;margin-top:.5rem}
+    /* ── ZOOM CONTROLS ── */
+    #zoom-ctrl{
+      position:fixed;bottom:1.5rem;right:1.5rem;
+      display:flex;flex-direction:column;gap:.3rem;z-index:300;
+    }
+    .z-btn{
+      width:36px;height:36px;background:var(--surface);border:1px solid var(--border);
+      color:var(--text);font-size:1.1rem;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      transition:border-color .2s;user-select:none;
+    }
+    .z-btn:hover{border-color:var(--accent)}
 
+    /* ── MAP CANVAS ── */
+    #map-canvas{
+      position:fixed;top:48px;left:0;right:0;bottom:0;
+      overflow:hidden;cursor:grab;
+    }
+    #map-canvas.dragging{cursor:grabbing}
+    #map-world{
+      position:absolute;
+      transform-origin:0 0;
+      will-change:transform;
+    }
+
+    /* ── ROOMS ── */
     .room{
-      width:270px;min-height:200px;
+      position:absolute;
+      width:420px;
       background:var(--surface);
       border:1px solid var(--border);
-      padding:1rem;
-      display:flex;flex-direction:column;
+      border-radius:2px;
+      padding:1.4rem;
       transition:border-color .3s;
+      user-select:none;
     }
-    .room.occupied{border-color:#2a2a45}
+    .room.occupied{border-color:#252540}
+    .room-label{
+      font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--muted);margin-bottom:.6rem;
+    }
+    .room-desc{
+      font-size:.82rem;color:#2a2a48;line-height:1.6;
+      margin-bottom:1.2rem;
+    }
+    .room-objects{margin-bottom:1rem}
+    .obj{font-size:.7rem;color:#222238;padding:.2rem 0;border-bottom:1px solid #111120}
+    .obj .obj-name{color:#333350}
 
-    .room-name{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
-    .room-desc{font-size:.7rem;color:#2e2e50;line-height:1.5;flex:1}
+    /* ── CONNECTOR ── */
+    .connector-line{
+      position:absolute;
+      background:#141420;
+      z-index:0;
+    }
+    .connector-line.h{height:2px}
+    .connector-line.v{width:2px}
 
-    .connector{display:flex;align-items:center;justify-content:center;width:28px;color:#1e1e30;font-size:.85rem;flex-shrink:0;user-select:none}
-
-    .tokens{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem;min-height:32px}
-
+    /* ── TOKENS ── */
+    .tokens{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.4rem;position:relative;z-index:2}
     .token{
-      display:flex;align-items:center;gap:.35rem;
-      background:var(--bg);
-      border:1px solid var(--border);
-      padding:.25rem .5rem;
-      cursor:pointer;
-      transition:border-color .2s,background .2s;
+      display:flex;align-items:center;gap:.5rem;
+      background:var(--bg);border:1px solid var(--border);
+      padding:.4rem .7rem;cursor:pointer;
+      transition:border-color .2s,transform .15s;
+      border-radius:1px;
     }
-    .token:hover{border-color:#444}
-    .token.sel{background:#0d0d1a}
+    .token:hover{transform:scale(1.04)}
+    .token.sel{border-color:var(--accent)!important;background:#0d0d1a}
+    .tok-img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid transparent}
+    .tok-letter{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:bold;flex-shrink:0}
+    .tok-name{font-size:.8rem;font-weight:bold;line-height:1.2}
+    .tok-act{font-size:.68rem;color:var(--muted);max-width:130px;line-height:1.3}
 
-    .tok-img{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0}
-    .tok-letter{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:bold;flex-shrink:0}
-    .tok-name{font-size:.68rem;font-weight:bold}
-    .tok-act{font-size:.6rem;color:var(--muted);max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-    /* SIDE PANEL */
-    .panel{
-      position:fixed;right:0;top:0;
-      width:290px;height:100vh;
-      background:var(--surface);
-      border-left:1px solid var(--border);
+    /* ── SIDE PANEL ── */
+    #panel{
+      position:fixed;right:0;top:48px;bottom:0;width:300px;
+      background:var(--surface);border-left:1px solid var(--border);
       padding:1.4rem;overflow-y:auto;
-      transform:translateX(100%);
-      transition:transform .3s ease;
-      z-index:200;
+      transform:translateX(100%);transition:transform .3s ease;z-index:250;
     }
-    .panel.open{transform:translateX(0)}
-    .panel-close{position:absolute;top:.9rem;right:.9rem;color:var(--muted);cursor:pointer;font-size:1.1rem}
-    .panel-close:hover{color:var(--text)}
-
-    .pan-img{width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:.8rem}
-    .pan-letter{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:bold;margin-bottom:.8rem}
+    #panel.open{transform:translateX(0)}
+    #p-close{position:absolute;top:.9rem;right:.9rem;color:var(--muted);cursor:pointer;font-size:1rem}
+    #p-close:hover{color:var(--text)}
+    .pan-av-wrap{margin-bottom:.8rem}
+    .pan-img{width:56px;height:56px;border-radius:50%;object-fit:cover}
+    .pan-letter{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:bold}
     .pan-name{font-size:1rem;font-weight:bold;margin-bottom:.15rem}
-    .pan-act{font-size:.7rem;color:var(--muted);margin-bottom:.9rem}
-
-    .think{background:var(--bg);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.74rem;color:#aaa;line-height:1.5;font-style:italic;margin-bottom:.9rem}
-
+    .pan-act{font-size:.7rem;color:var(--muted);margin-bottom:.8rem}
+    .think{background:var(--bg);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.74rem;color:#aaa;line-height:1.5;font-style:italic;margin-bottom:.8rem}
     .stat{display:flex;justify-content:space-between;font-size:.72rem;padding:.28rem 0;border-bottom:1px solid var(--border)}
     .stat .lbl{color:var(--muted)}
-
-    .sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .5rem}
-
-    .rel{margin-bottom:.7rem}
-    .rel-h{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:.2rem}
+    .sec{font-size:.58rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .5rem}
+    .rel{margin-bottom:.75rem}
+    .rel-h{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:.22rem}
     .rel-s{color:var(--muted);font-size:.6rem}
-    .bar-r{display:flex;gap:3px;align-items:center;margin-bottom:2px}
-    .bar-l{font-size:.56rem;color:var(--muted);width:50px;flex-shrink:0}
-    .bar-t{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-    .bar-f{height:100%;border-radius:2px;transition:width .5s}
-    .bar-f.t{background:var(--accent)}
-    .bar-f.f{background:var(--green)}
-    .bar-f.r{background:var(--pink)}
-    .bar-f.v{background:var(--red)}
+    .br{display:flex;gap:3px;align-items:center;margin-bottom:2px}
+    .bl{font-size:.56rem;color:var(--muted);width:52px;flex-shrink:0}
+    .bt{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+    .bf{height:100%;border-radius:2px;transition:width .5s}
+    .bf.t{background:var(--accent)}.bf.f{background:var(--green)}.bf.r{background:var(--pink)}.bf.v{background:var(--red)}
 
-    /* CONVS */
-    .conv{border-left:2px solid var(--border);padding:.6rem .9rem;margin-bottom:.7rem}
+    /* ── OVERLAY PAGES ── */
+    .overlay{
+      position:fixed;top:48px;left:0;right:0;bottom:0;
+      background:var(--bg);z-index:200;overflow-y:auto;padding:2rem;
+      display:none;
+    }
+    .overlay.on{display:block}
+    .pg-t{font-size:1.1rem;font-weight:bold;margin-bottom:.3rem}
+    .pg-s{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
+
+    .conv{border-left:2px solid var(--border);padding:.6rem .9rem;margin-bottom:.7rem;max-width:700px}
     .conv:hover{border-color:var(--accent)}
     .conv-m{font-size:.6rem;color:var(--muted);margin-bottom:.35rem}
-    .conv-l{font-size:.78rem;line-height:1.5;padding:.1rem 0}
+    .conv-l{font-size:.8rem;line-height:1.55;padding:.1rem 0}
     .conv-l .spk{color:var(--accent);font-weight:bold;margin-right:.3rem}
 
-    /* DIRECTOR */
-    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.1rem;margin-bottom:1.3rem}
-    .dir-title{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.7rem}
-    .dir-row{display:flex;gap:.4rem;margin-bottom:.4rem}
-    .dir-row input,.dir-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;outline:none}
-    .dir-row input:focus,.dir-row textarea:focus{border-color:var(--accent)}
+    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.1rem;margin-bottom:1.3rem;max-width:500px}
+    .dir-t{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.7rem}
+    .drow{display:flex;gap:.4rem;margin-bottom:.4rem}
+    .drow input,.drow textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;outline:none}
+    .drow input:focus,.drow textarea:focus{border-color:var(--accent)}
 
-    /* ONBOARD */
-    .ob-wrap{max-width:560px}
-    .ob-title{font-size:1.1rem;font-weight:bold;margin-bottom:.25rem}
-    .ob-sub{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
-    .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:250px}
+    .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:260px}
     .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.62rem;font-family:inherit;font-size:.86rem;outline:none}
     .ob-form input:focus{border-color:var(--accent)}
-    .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem}
+    .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem;max-width:500px}
     .prog-f{height:100%;background:var(--accent);transition:width .4s}
-    .chat{max-height:290px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem}
+    .chatlog{max-height:300px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem;max-width:500px}
     .msg{display:flex;flex-direction:column;gap:.12rem}
     .msg.ai .sp{font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
     .msg.hu .sp{font-size:.6rem;color:var(--muted);text-transform:uppercase;text-align:right}
     .msg.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.8rem;line-height:1.5}
     .msg.hu .bb{background:#0d0d1a;border-right:2px solid var(--border);padding:.5rem .7rem;font-size:.8rem;line-height:1.5;text-align:right}
-    .qbox{background:var(--surface);border:1px solid var(--border);padding:.7rem;font-size:.8rem;line-height:1.5;color:#ccc;margin-bottom:.7rem}
-    .in-row{display:flex;gap:.4rem}
+    .qbox{background:var(--surface);border:1px solid var(--border);padding:.7rem;font-size:.8rem;line-height:1.5;color:#ccc;margin-bottom:.7rem;max-width:500px}
+    .in-row{display:flex;gap:.4rem;max-width:500px}
     .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;resize:none;height:60px;outline:none}
     .in-row textarea:focus{border-color:var(--accent)}
     .err{color:var(--red);font-size:.7rem;min-height:.9rem}
     .typing{display:none;gap:4px;align-items:center;padding:.25rem 0}
     .typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite}
-    .typing span:nth-child(2){animation-delay:.2s}
-    .typing span:nth-child(3){animation-delay:.4s}
+    .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
-    .done{text-align:center;padding:1.8rem}
+    .done-box{text-align:center;padding:2rem;max-width:500px}
     .done-i{font-size:1.8rem;margin-bottom:.6rem}
     .done-t{font-size:1rem;color:var(--accent);margin-bottom:.6rem}
     .done-m{color:var(--muted);line-height:1.6;margin-bottom:.9rem;font-size:.8rem}
-    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;text-align:left;margin-bottom:.9rem}
+    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;margin-bottom:.9rem}
 
     .btn{background:var(--accent);border:none;color:#fff;padding:.52rem 1rem;font-family:inherit;font-size:.78rem;cursor:pointer}
     .btn:hover{opacity:.85}
     .empty{color:var(--muted);font-size:.78rem;padding:.8rem 0}
-
-    .pg-title{font-size:1.1rem;font-weight:bold;margin-bottom:.25rem}
-    .pg-sub{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
   </style>
 </head>
 <body>
 
-<nav>
-  <div class="logo">THE <span>SIMULATION</span></div>
-  <div class="links">
-    <a onclick="go('map')" id="n-map" class="on">Map</a>
-    <a onclick="go('convs')" id="n-convs">Conversations</a>
-    <a onclick="go('dir')" id="n-dir">Director</a>
-    <a onclick="go('ob')" id="n-ob">Onboard</a>
+<!-- TOP BAR -->
+<div id="topbar">
+  <div style="display:flex;align-items:center;gap:2rem">
+    <div class="logo">THE <span>SIMULATION</span></div>
+    <div class="nav">
+      <a id="n-map" class="on" onclick="showMap()">Map</a>
+      <a id="n-convs" onclick="showOverlay('convs')">Conversations</a>
+      <a id="n-dir" onclick="showOverlay('dir')">Director</a>
+      <a id="n-ob" onclick="showOverlay('ob')">Onboard</a>
+    </div>
   </div>
-</nav>
+  <div class="meta">
+    <div><span class="lbl">Status</span><span id="m-status"><span class="dot stopped"></span>—</span></div>
+    <div><span class="lbl">Tick</span><span id="m-tick">—</span></div>
+    <div><span class="lbl">Updated</span><span id="m-upd">—</span></div>
+  </div>
+</div>
+
+<!-- MAP CANVAS -->
+<div id="map-canvas">
+  <div id="map-world"></div>
+</div>
+
+<!-- ZOOM CONTROLS -->
+<div id="zoom-ctrl">
+  <div class="z-btn" onclick="zoom(0.15)">+</div>
+  <div class="z-btn" onclick="zoom(-0.15)">−</div>
+  <div class="z-btn" onclick="resetView()" style="font-size:.55rem;letter-spacing:.05em">RST</div>
+</div>
 
 <!-- SIDE PANEL -->
-<div class="panel" id="panel">
-  <div class="panel-close" onclick="closePanel()">✕</div>
-  <div id="p-img-wrap"></div>
+<div id="panel">
+  <div id="p-close" onclick="closePanel()">✕</div>
+  <div class="pan-av-wrap" id="p-av"></div>
   <div class="pan-name" id="p-name"></div>
-  <div class="pan-act" id="p-act"></div>
-  <div class="think" id="p-think"></div>
+  <div class="pan-act"  id="p-act"></div>
+  <div class="think"    id="p-think"></div>
   <div class="stat"><span class="lbl">mood</span><span id="p-mood"></span></div>
   <div class="stat"><span class="lbl">location</span><span id="p-loc"></span></div>
   <div class="stat"><span class="lbl">chats today</span><span id="p-chats"></span></div>
@@ -179,295 +234,347 @@
   <div id="p-rels"></div>
 </div>
 
-<!-- MAP PAGE -->
-<div class="page on" id="map-page">
-  <div class="meta">
-    <div><span class="lbl">Status</span><span id="m-status"><span class="dot stopped"></span>Loading...</span></div>
-    <div><span class="lbl">Tick</span><span id="m-tick">—</span></div>
-    <div><span class="lbl">Updated</span><span id="m-upd">—</span></div>
-  </div>
-  <div id="map-wrap"><div class="empty">Waiting for simulation...</div></div>
-</div>
-
-<!-- CONVS PAGE -->
-<div class="page" id="convs-page">
-  <div class="pg-title">Conversations</div>
-  <div class="pg-sub">Everything said in the simulation</div>
+<!-- CONVERSATIONS OVERLAY -->
+<div class="overlay" id="convs-overlay">
+  <div class="pg-t">Conversations</div>
+  <div class="pg-s">Everything said in the simulation</div>
   <div id="conv-wrap"><div class="empty">No conversations yet...</div></div>
 </div>
 
-<!-- DIRECTOR PAGE -->
-<div class="page" id="dir-page">
-  <div class="pg-title">Director</div>
-  <div class="pg-sub">Shape what happens today</div>
+<!-- DIRECTOR OVERLAY -->
+<div class="overlay" id="dir-overlay">
+  <div class="pg-t">Director</div>
+  <div class="pg-s">Shape what happens today</div>
   <div class="dir-box">
-    <div class="dir-title">◈ Send Instruction</div>
-    <div class="dir-row"><input type="password" id="d-pw" placeholder="director password"/></div>
-    <div class="dir-row"><textarea id="d-inst" style="height:65px" placeholder="e.g. 'Joseph gets bad news today'"></textarea></div>
-    <div class="dir-row"><button class="btn" onclick="sendDir()">Send →</button></div>
+    <div class="dir-t">◈ Send Instruction</div>
+    <div class="drow"><input type="password" id="d-pw" placeholder="director password"/></div>
+    <div class="drow"><textarea id="d-inst" style="height:65px" placeholder="e.g. 'Joseph gets bad news today'"></textarea></div>
+    <div class="drow"><button class="btn" onclick="sendDir()">Send →</button></div>
     <div class="err" id="d-err"></div>
   </div>
 </div>
 
-<!-- ONBOARD PAGE -->
-<div class="page" id="ob-page">
-  <div class="ob-wrap">
-    <div id="ob-login">
-      <div class="ob-title">Onboarding</div>
-      <div class="ob-sub">Calibrate your digital self</div>
-      <div class="ob-form">
-        <input type="text" id="ob-name-in" placeholder="your name" autocomplete="off"/>
-        <input type="password" id="ob-pw" placeholder="password"/>
-        <button class="btn" id="ob-btn" onclick="obLogin()">Enter →</button>
-        <div class="err" id="ob-err"></div>
-      </div>
+<!-- ONBOARD OVERLAY -->
+<div class="overlay" id="ob-overlay">
+  <div id="ob-login">
+    <div class="pg-t">Onboarding</div>
+    <div class="pg-s">Calibrate your digital self</div>
+    <div class="ob-form">
+      <input type="text" id="ob-n" placeholder="your name" autocomplete="off"/>
+      <input type="password" id="ob-pw" placeholder="password"/>
+      <button class="btn" id="ob-btn" onclick="obLogin()">Enter →</button>
+      <div class="err" id="ob-err"></div>
     </div>
-    <div id="ob-chat-view" style="display:none">
-      <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
-        <div id="ob-av"></div>
-        <div><div style="font-weight:bold;font-size:.9rem" id="ob-ag-name"></div><div style="font-size:.65rem;color:var(--muted)">digital self</div></div>
-      </div>
-      <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
-      <div class="chat" id="ob-msgs"></div>
-      <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
-      <div class="qbox" id="ob-q"></div>
-      <div class="in-row">
-        <textarea id="ob-ans" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
-        <button class="btn" id="ob-send" onclick="obSend()">→</button>
-      </div>
+  </div>
+  <div id="ob-chat" style="display:none">
+    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
+      <div id="ob-av2"></div>
+      <div><div style="font-weight:bold;font-size:.9rem" id="ob-agn"></div><div style="font-size:.62rem;color:var(--muted)">digital self</div></div>
     </div>
-    <div id="ob-done" style="display:none" class="done">
-      <div class="done-i">◈</div>
-      <div class="done-t">Calibration Complete</div>
-      <div class="done-m" id="ob-done-msg"></div>
-      <div class="preview-b" id="ob-done-pre"></div>
-      <button class="btn" onclick="location.reload()">Done</button>
+    <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
+    <div class="chatlog" id="ob-msgs"></div>
+    <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
+    <div class="qbox" id="ob-q"></div>
+    <div class="in-row">
+      <textarea id="ob-ans" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
+      <button class="btn" id="ob-send" onclick="obSend()">→</button>
     </div>
+  </div>
+  <div id="ob-done" style="display:none" class="done-box">
+    <div class="done-i">◈</div>
+    <div class="done-t">Calibration Complete</div>
+    <div class="done-m" id="ob-dm"></div>
+    <div class="preview-b" id="ob-dp"></div>
+    <button class="btn" onclick="location.reload()">Done</button>
   </div>
 </div>
 
 <script>
-  // ── State ──────────────────────────────────────────────────────────────────
-  let sel = null, obAgent = "", obTotal = 0, cache = {};
-  const C = {joseph:"#7c6fff", evie:"#ff6fb0", martin:"#4fffb0"};
-  const gc = n => C[n?.toLowerCase()] || "#7c6fff";
+// ── State ──────────────────────────────────────────────────────────────────
+let sel=null, obAgent="", obTotal=0, cache={};
+let tx=120, ty=80, scale=1;
+let dragging=false, lastX=0, lastY=0;
+const C={joseph:"#7c6fff",evie:"#ff6fb0",martin:"#4fffb0"};
+const gc=n=>C[n?.toLowerCase()]||"#7c6fff";
 
-  // ── Nav ────────────────────────────────────────────────────────────────────
-  function go(name) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
-    document.querySelectorAll(".links a").forEach(a => a.classList.remove("on"));
-    document.getElementById(name+"-page").classList.add("on");
-    document.getElementById("n-"+name).classList.add("on");
-    if (name==="map")   loadMap();
-    if (name==="convs") loadConvs();
-  }
+// ── Drag & Zoom ────────────────────────────────────────────────────────────
+const canvas = document.getElementById("map-canvas");
+const world  = document.getElementById("map-world");
 
-  // ── Map ────────────────────────────────────────────────────────────────────
-  async function loadMap() {
-    try {
-      const d = await (await fetch("/api/status")).json();
-      cache = d;
+function applyTransform(){
+  world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
+}
 
-      // meta bar
-      const meta = d?.simulation?.meta || {};
-      const s = meta.status || "unknown";
-      const dc = s==="running"?"running":s==="sleeping"?"sleeping":"stopped";
-      document.getElementById("m-status").innerHTML = `<span class="dot ${dc}"></span>${s}`;
-      document.getElementById("m-tick").textContent = meta.tick_count || "—";
-      document.getElementById("m-upd").textContent  = meta.last_tick  || "—";
+canvas.addEventListener("mousedown",e=>{
+  if(e.target.closest(".token")||e.target.closest(".z-btn")) return;
+  dragging=true; lastX=e.clientX; lastY=e.clientY;
+  canvas.classList.add("dragging");
+});
+window.addEventListener("mousemove",e=>{
+  if(!dragging) return;
+  tx+=e.clientX-lastX; ty+=e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  applyTransform();
+});
+window.addEventListener("mouseup",()=>{ dragging=false; canvas.classList.remove("dragging"); });
 
-      const wd = d?.world;
-      if (!wd?.rooms) {
-        document.getElementById("map-wrap").innerHTML = '<div class="empty">Waiting for simulation to start...</div>';
-        return;
-      }
+canvas.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const delta = e.deltaY>0?-0.1:0.1;
+  const rect  = canvas.getBoundingClientRect();
+  const mx    = e.clientX - rect.left;
+  const my    = e.clientY - rect.top;
+  const prev  = scale;
+  scale = Math.max(0.3, Math.min(3, scale+delta));
+  tx = mx - (mx-tx)*(scale/prev);
+  ty = my - (my-ty)*(scale/prev);
+  applyTransform();
+},{passive:false});
 
-      buildMap(wd, d?.agents || {});
-    } catch(e) { console.error(e); }
-  }
+// Touch support
+let lastTouchDist=0;
+canvas.addEventListener("touchstart",e=>{
+  if(e.touches.length===1){dragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}
+  if(e.touches.length===2) lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+});
+canvas.addEventListener("touchmove",e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&dragging){tx+=e.touches[0].clientX-lastX;ty+=e.touches[0].clientY-lastY;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;applyTransform();}
+  if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);scale=Math.max(.3,Math.min(3,scale*(d/lastTouchDist)));lastTouchDist=d;applyTransform();}
+},{passive:false});
+canvas.addEventListener("touchend",()=>{dragging=false;});
 
-  function buildMap(wd, agents) {
-    const rooms = wd.rooms;
-    const pos   = wd.agent_positions || {};
+function zoom(delta){
+  const cx=canvas.offsetWidth/2, cy=canvas.offsetHeight/2;
+  const prev=scale;
+  scale=Math.max(.3,Math.min(3,scale+delta));
+  tx=cx-(cx-tx)*(scale/prev);
+  ty=cy-(cy-ty)*(scale/prev);
+  applyTransform();
+}
 
-    // sort rooms by x
-    const sorted = Object.entries(rooms).sort((a,b) => (a[1].position?.x||0) - (b[1].position?.x||0));
+function resetView(){tx=120;ty=80;scale=1;applyTransform();}
 
-    let html = '<div class="map-wrap">';
+// ── Nav ────────────────────────────────────────────────────────────────────
+function showMap(){
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
+  document.getElementById("n-map").classList.add("on");
+}
 
-    sorted.forEach(([rid, room], i) => {
-      const here = Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
+function showOverlay(name){
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
+  document.getElementById(name+"-overlay").classList.add("on");
+  document.getElementById("n-"+name).classList.add("on");
+  if(name==="convs") loadConvs();
+}
 
-      html += `<div class="room ${here.length?"occupied":""}">`;
-      html += `<div class="room-name">${room.name}</div>`;
-      html += `<div class="room-desc">${room.description}</div>`;
-      html += `<div class="tokens">`;
+// ── Map ────────────────────────────────────────────────────────────────────
+async function loadMap(){
+  try{
+    const d=await (await fetch("/api/status")).json();
+    cache=d;
+    const meta=d?.simulation?.meta||{};
+    const s=meta.status||"unknown";
+    const dc=s==="running"?"running":s==="sleeping"?"sleeping":"stopped";
+    document.getElementById("m-status").innerHTML=`<span class="dot ${dc}"></span>${s}`;
+    document.getElementById("m-tick").textContent=meta.tick_count||"—";
+    document.getElementById("m-upd").textContent=meta.last_tick||"—";
+    const wd=d?.world;
+    if(!wd?.rooms){world.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:2rem">Waiting for simulation...</div>';return;}
+    buildMap(wd,d?.agents||{});
+  }catch(e){console.error(e);}
+}
 
-      here.forEach(aid => {
-        const ag  = agents[aid]?.status || agents[aid] || {};
-        const col = gc(aid);
-        const isSel = sel === aid;
-        const imgSrc = `/static/${aid}.png`;
+function buildMap(wd,agents){
+  const rooms=wd.rooms, pos=wd.agent_positions||{};
+  const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
 
-        html += `<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')" style="border-color:${isSel?col:""}">`;
-        html += `<img class="tok-img" src="${imgSrc}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" style="display:block"/>`;
-        html += `<div class="tok-letter" style="background:${col};display:none">${aid[0].toUpperCase()}</div>`;
-        html += `<div><div class="tok-name">${aid}</div><div class="tok-act">${ag.activity||"..."}</div></div>`;
-        html += `</div>`;
-      });
+  // Room dimensions & layout
+  const RW=440, RH=320, GAP=80, CONN=40;
+  const totalW=sorted.length*RW+(sorted.length-1)*(GAP+CONN);
+  let html="";
 
-      html += `</div></div>`;
-      if (i < sorted.length - 1) html += `<div class="connector">──</div>`;
-    });
+  sorted.forEach(([rid,room],i)=>{
+    const x=i*(RW+GAP+CONN);
+    const y=0;
+    const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
 
-    html += '</div>';
-    document.getElementById("map-wrap").innerHTML = html;
-    if (sel) refreshPanel(sel, agents);
-  }
-
-  function pick(aid) {
-    if (sel===aid) { closePanel(); return; }
-    sel = aid;
-    refreshPanel(aid, cache?.agents||{});
-    document.getElementById("panel").classList.add("open");
-    loadMap();
-  }
-
-  function refreshPanel(aid, agents) {
-    const ag  = agents[aid]?.status || agents[aid] || {};
-    const lt  = agents[aid]?.relationships || {};
-    const col = gc(aid);
-
-    // avatar
-    const wrap = document.getElementById("p-img-wrap");
-    wrap.innerHTML = `<img class="pan-img" src="/static/${aid}.png" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
-
-    document.getElementById("p-name").textContent  = aid;
-    document.getElementById("p-act").textContent   = ag.activity  || "...";
-    document.getElementById("p-think").textContent = ag.thought ? `"${ag.thought}"` : "...";
-    document.getElementById("p-mood").textContent  = ag.mood      || "—";
-    document.getElementById("p-loc").textContent   = ag.location  || "—";
-    document.getElementById("p-chats").textContent = ag.conversations_today || 0;
-
-    let rh = "";
-    for (const [o,r] of Object.entries(lt)) {
-      rh += `<div class="rel">
-        <div class="rel-h"><span>${o}</span><span class="rel-s">${r.status||r.current_status||"friend"}</span></div>
-        <div class="bar-r"><span class="bar-l">trust</span><div class="bar-t"><div class="bar-f t" style="width:${r.trust||0}%"></div></div></div>
-        <div class="bar-r"><span class="bar-l">friendship</span><div class="bar-t"><div class="bar-f f" style="width:${r.friendship||0}%"></div></div></div>
-        <div class="bar-r"><span class="bar-l">romantic</span><div class="bar-t"><div class="bar-f r" style="width:${r.romantic||0}%"></div></div></div>
-        <div class="bar-r"><span class="bar-l">rivalry</span><div class="bar-t"><div class="bar-f v" style="width:${r.rivalry||0}%"></div></div></div>
-      </div>`;
+    // Connector line
+    if(i<sorted.length-1){
+      html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP+CONN}px"></div>`;
     }
-    document.getElementById("p-rels").innerHTML = rh || '<div class="empty">No relationships yet</div>';
-  }
 
-  function closePanel() {
-    sel = null;
-    document.getElementById("panel").classList.remove("open");
-    loadMap();
-  }
+    // Room tile
+    html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:${y}px;width:${RW}px;min-height:${RH}px">`;
+    html+=`<div class="room-label">${room.name}</div>`;
+    html+=`<div class="room-desc">${room.description}</div>`;
 
-  // ── Convs ──────────────────────────────────────────────────────────────────
-  async function loadConvs() {
-    const d = await (await fetch("/api/status")).json();
-    const convs = Object.values(d?.conversations||{}).reverse();
-    const wrap = document.getElementById("conv-wrap");
-    if (!convs.length) { wrap.innerHTML='<div class="empty">No conversations yet...</div>'; return; }
-    wrap.innerHTML = convs.map(c => {
-      const lines = (c.lines||[]).map(l => {
-        const i = l.indexOf(":");
-        return i>-1
-          ? `<div class="conv-l"><span class="spk">${l.slice(0,i)}:</span>${l.slice(i+1).trim()}</div>`
-          : `<div class="conv-l">${l}</div>`;
-      }).join("");
-      return `<div class="conv"><div class="conv-m">${c.timestamp||""} · ${(c.participants||[]).join(" & ")} · ${c.location||""}</div>${lines}</div>`;
+    // Objects
+    if(room.objects?.length){
+      html+=`<div class="room-objects">`;
+      room.objects.forEach(o=>{
+        html+=`<div class="obj"><span class="obj-name">${o.name}</span> — ${o.appearance}</div>`;
+      });
+      html+=`</div>`;
+    }
+
+    // Agent tokens
+    html+=`<div class="tokens">`;
+    here.forEach(aid=>{
+      const ag=agents[aid]?.status||agents[aid]||{};
+      const col=gc(aid);
+      const isSel=sel===aid;
+      html+=`<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')" style="border-color:${isSel?col:""}">
+        <img class="tok-img" src="/static/${aid}.png" style="border-color:${col}" onerror="this.style.display='none';this.nextSibling.style.display='flex'"/>
+        <div class="tok-letter" style="background:${col};display:none">${aid[0].toUpperCase()}</div>
+        <div>
+          <div class="tok-name" style="color:${col}">${aid}</div>
+          <div class="tok-act">${ag.activity||"..."}</div>
+        </div>
+      </div>`;
+    });
+    html+=`</div>`;
+    html+=`</div>`;
+  });
+
+  world.innerHTML=html;
+  world.style.width=totalW+"px";
+  world.style.height=(RH+100)+"px";
+
+  if(sel) refreshPanel(sel,agents);
+}
+
+// ── Panel ──────────────────────────────────────────────────────────────────
+function pick(aid){
+  if(sel===aid){closePanel();return;}
+  sel=aid;
+  refreshPanel(aid,cache?.agents||{});
+  document.getElementById("panel").classList.add("open");
+  buildMap(cache?.world||{},cache?.agents||{});
+}
+
+function refreshPanel(aid,agents){
+  const ag=agents[aid]?.status||agents[aid]||{};
+  const lt=agents[aid]?.relationships||{};
+  const col=gc(aid);
+  document.getElementById("p-av").innerHTML=`<img class="pan-img" src="/static/${aid}.png" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
+  document.getElementById("p-name").textContent=aid;
+  document.getElementById("p-act").textContent=ag.activity||"...";
+  document.getElementById("p-think").textContent=ag.thought?`"${ag.thought}"`:"...";
+  document.getElementById("p-mood").textContent=ag.mood||"—";
+  document.getElementById("p-loc").textContent=ag.location||"—";
+  document.getElementById("p-chats").textContent=ag.conversations_today||0;
+  let rh="";
+  for(const [o,r] of Object.entries(lt)){
+    rh+=`<div class="rel">
+      <div class="rel-h"><span>${o}</span><span class="rel-s">${r.status||r.current_status||"friend"}</span></div>
+      <div class="br"><span class="bl">trust</span><div class="bt"><div class="bf t" style="width:${r.trust||0}%"></div></div></div>
+      <div class="br"><span class="bl">friendship</span><div class="bt"><div class="bf f" style="width:${r.friendship||0}%"></div></div></div>
+      <div class="br"><span class="bl">romantic</span><div class="bt"><div class="bf r" style="width:${r.romantic||0}%"></div></div></div>
+      <div class="br"><span class="bl">rivalry</span><div class="bt"><div class="bf v" style="width:${r.rivalry||0}%"></div></div></div>
+    </div>`;
+  }
+  document.getElementById("p-rels").innerHTML=rh||'<div class="empty">No relationships yet</div>';
+}
+
+function closePanel(){sel=null;document.getElementById("panel").classList.remove("open");buildMap(cache?.world||{},cache?.agents||{});}
+
+// ── Convs ──────────────────────────────────────────────────────────────────
+async function loadConvs(){
+  const d=await (await fetch("/api/status")).json();
+  const convs=Object.values(d?.conversations||{}).reverse();
+  const wrap=document.getElementById("conv-wrap");
+  if(!convs.length){wrap.innerHTML='<div class="empty">No conversations yet...</div>';return;}
+  wrap.innerHTML=convs.map(c=>{
+    const lines=(c.lines||[]).map(l=>{
+      const i=l.indexOf(":");
+      return i>-1?`<div class="conv-l"><span class="spk">${l.slice(0,i)}:</span>${l.slice(i+1).trim()}</div>`:`<div class="conv-l">${l}</div>`;
     }).join("");
-  }
+    return `<div class="conv"><div class="conv-m">${c.timestamp||""} · ${(c.participants||[]).join(" & ")} · ${c.location||""}</div>${lines}</div>`;
+  }).join("");
+}
 
-  // ── Director ───────────────────────────────────────────────────────────────
-  async function sendDir() {
-    const inst = document.getElementById("d-inst").value.trim();
-    const pw   = document.getElementById("d-pw").value;
-    const err  = document.getElementById("d-err");
-    if (!inst) { err.textContent="Write something first."; return; }
-    if (!pw)   { err.textContent="Enter director password."; return; }
-    const d = await (await fetch("/director",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction:inst,password:pw})})).json();
-    if (d.error) { err.textContent=d.error; return; }
-    err.textContent="";
-    document.getElementById("d-inst").value="";
-    alert("✅ Sent! Takes effect next tick.");
-  }
+// ── Director ───────────────────────────────────────────────────────────────
+async function sendDir(){
+  const inst=document.getElementById("d-inst").value.trim();
+  const pw=document.getElementById("d-pw").value;
+  const err=document.getElementById("d-err");
+  if(!inst){err.textContent="Write something.";return;}
+  if(!pw){err.textContent="Enter password.";return;}
+  const d=await (await fetch("/director",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction:inst,password:pw})})).json();
+  if(d.error){err.textContent=d.error;return;}
+  err.textContent="";document.getElementById("d-inst").value="";
+  alert("✅ Sent! Takes effect next tick.");
+}
 
-  // ── Onboard ────────────────────────────────────────────────────────────────
-  async function obLogin() {
-    const name = document.getElementById("ob-name-in").value.trim().toLowerCase();
-    const pw   = document.getElementById("ob-pw").value;
-    const err  = document.getElementById("ob-err");
-    const btn  = document.getElementById("ob-btn");
-    if (!name||!pw) { err.textContent="Fill both fields."; return; }
-    btn.disabled=true; btn.textContent="..."; err.textContent="";
-    const d = await (await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:name,password:pw})})).json();
-    if (!d.success) { err.textContent=d.error; btn.disabled=false; btn.textContent="Enter →"; return; }
-    obAgent = d.agent;
-    document.getElementById("ob-login").style.display="none";
-    document.getElementById("ob-chat-view").style.display="block";
+// ── Onboard ────────────────────────────────────────────────────────────────
+async function obLogin(){
+  const name=document.getElementById("ob-n").value.trim().toLowerCase();
+  const pw=document.getElementById("ob-pw").value;
+  const err=document.getElementById("ob-err");
+  const btn=document.getElementById("ob-btn");
+  if(!name||!pw){err.textContent="Fill both fields.";return;}
+  btn.disabled=true;btn.textContent="...";err.textContent="";
+  const d=await (await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:name,password:pw})})).json();
+  if(!d.success){err.textContent=d.error;btn.disabled=false;btn.textContent="Enter →";return;}
+  obAgent=d.agent;
+  document.getElementById("ob-login").style.display="none";
+  document.getElementById("ob-chat").style.display="block";
+  const col=gc(obAgent);
+  document.getElementById("ob-av2").innerHTML=`<img style="width:38px;height:38px;border-radius:50%;object-fit:cover" src="/static/${obAgent}.png" onerror="this.outerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-weight:bold\\'>${obAgent[0].toUpperCase()}</div>'"/>`;
+  document.getElementById("ob-agn").textContent=obAgent[0].toUpperCase()+obAgent.slice(1);
+  const s=await (await fetch("/onboard/start")).json();
+  obTotal=s.total_questions;
+  addMsg("ai",s.message);
+  setTimeout(()=>setQ(s.question,0,obTotal),400);
+}
 
-    // avatar
-    const avWrap = document.getElementById("ob-av");
-    avWrap.innerHTML = `<img style="width:36px;height:36px;border-radius:50%;object-fit:cover" src="/static/${obAgent}.png" onerror="this.outerHTML='<div style=\\'width:36px;height:36px;border-radius:50%;background:${gc(obAgent)};display:flex;align-items:center;justify-content:center;font-weight:bold\\'>${obAgent[0].toUpperCase()}</div>'"/>`;
-    document.getElementById("ob-ag-name").textContent = obAgent[0].toUpperCase()+obAgent.slice(1);
+async function obSend(){
+  const ta=document.getElementById("ob-ans");
+  const ans=ta.value.trim();
+  if(!ans) return;
+  addMsg("hu",ans);ta.value="";
+  document.getElementById("ob-send").disabled=true;
+  document.getElementById("ob-typing").style.display="flex";
+  const d=await (await fetch("/onboard/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:ans})})).json();
+  document.getElementById("ob-typing").style.display="none";
+  document.getElementById("ob-send").disabled=false;
+  addMsg("ai",d.reaction);
+  if(d.done){
+    setTimeout(()=>{
+      document.getElementById("ob-chat").style.display="none";
+      document.getElementById("ob-done").style.display="block";
+      document.getElementById("ob-dm").textContent=d.reaction;
+      document.getElementById("ob-dp").textContent=d.new_prompt_preview;
+    },1500);
+  }else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
+}
 
-    const s = await (await fetch("/onboard/start")).json();
-    obTotal = s.total_questions;
-    addObMsg("ai", s.message);
-    setTimeout(()=>setQ(s.question,0,obTotal),400);
-  }
+function addMsg(type,text){
+  const log=document.getElementById("ob-msgs");
+  const m=document.createElement("div");
+  m.className=`msg ${type}`;
+  m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
+  log.appendChild(m);log.scrollTop=log.scrollHeight;
+}
 
-  async function obSend() {
-    const ta = document.getElementById("ob-ans");
-    const ans = ta.value.trim();
-    if (!ans) return;
-    addObMsg("hu", ans); ta.value="";
-    document.getElementById("ob-send").disabled=true;
-    document.getElementById("ob-typing").style.display="flex";
-    const d = await (await fetch("/onboard/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:ans})})).json();
-    document.getElementById("ob-typing").style.display="none";
-    document.getElementById("ob-send").disabled=false;
-    addObMsg("ai", d.reaction);
-    if (d.done) {
-      setTimeout(()=>{
-        document.getElementById("ob-chat-view").style.display="none";
-        document.getElementById("ob-done").style.display="block";
-        document.getElementById("ob-done-msg").textContent=d.reaction;
-        document.getElementById("ob-done-pre").textContent=d.new_prompt_preview;
-      },1500);
-    } else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
-  }
+function setQ(q,i,t){
+  document.getElementById("ob-q").textContent=q;
+  document.getElementById("ob-prog").style.width=(i/t*100)+"%";
+  document.getElementById("ob-ans").focus();
+}
 
-  function addObMsg(type,text){
-    const log=document.getElementById("ob-msgs");
-    const m=document.createElement("div");
-    m.className=`msg ${type}`;
-    m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
-    log.appendChild(m); log.scrollTop=log.scrollHeight;
-  }
+function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend();}}
 
-  function setQ(q,i,t){
-    document.getElementById("ob-q").textContent=q;
-    document.getElementById("ob-prog").style.width=(i/t*100)+"%";
-    document.getElementById("ob-ans").focus();
-  }
-
-  function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend();}}
-
-  // ── Auto refresh ───────────────────────────────────────────────────────────
-  loadMap();
-  setInterval(()=>{
-    const a=document.querySelector(".page.on");
-    if(a?.id==="map-page")   loadMap();
-    if(a?.id==="convs-page") loadConvs();
-  },20000);
+// ── Init ───────────────────────────────────────────────────────────────────
+applyTransform();
+loadMap();
+setInterval(()=>{
+  const anyOverlay=document.querySelector(".overlay.on");
+  if(!anyOverlay) loadMap();
+},20000);
 </script>
 </body>
 </html>
