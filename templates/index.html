@@ -5,727 +5,469 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>The Simulation</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{--bg:#08080f;--surface:#0f0f1a;--border:#1e1e30;--accent:#7c6fff;--pink:#ff6fb0;--text:#e0e0e0;--muted:#555;--green:#4fffb0;--red:#ff6b6b;--yellow:#ffd96b}
+    body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;min-height:100vh}
+    nav{border-bottom:1px solid var(--border);padding:.8rem 2rem;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-size:.72rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}.logo span{color:var(--accent)}
+    .links{display:flex;gap:1.5rem}
+    .links a{font-size:.68rem;color:var(--muted);text-decoration:none;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:color .2s}
+    .links a:hover,.links a.on{color:var(--accent)}
+    .page{display:none;padding:1.5rem 2rem;max-width:1100px;margin:0 auto}
+    .page.on{display:block}
 
-    :root {
-      --bg: #08080f;
-      --surface: #0f0f1a;
-      --border: #1e1e30;
-      --accent: #7c6fff;
-      --accent2: #ff6fb0;
-      --text: #e0e0e0;
-      --muted: #666;
-      --green: #4fffb0;
-      --red: #ff6b6b;
-      --yellow: #ffd96b;
+    /* META */
+    .meta{display:flex;gap:2rem;margin-bottom:1.5rem;padding:.7rem 1rem;background:var(--surface);border:1px solid var(--border);font-size:.72rem}
+    .meta .lbl{color:var(--muted);margin-right:.3rem}
+    .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px}
+    .dot.running{background:var(--green);animation:pulse 2s infinite}
+    .dot.sleeping{background:var(--yellow)}
+    .dot.stopped{background:var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* MAP */
+    .map-wrap{display:flex;justify-content:center;align-items:stretch;gap:0;margin-top:.5rem}
+
+    .room{
+      width:270px;min-height:200px;
+      background:var(--surface);
+      border:1px solid var(--border);
+      padding:1rem;
+      display:flex;flex-direction:column;
+      transition:border-color .3s;
     }
+    .room.occupied{border-color:#2a2a45}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Courier New', monospace;
-      min-height: 100vh;
+    .room-name{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem}
+    .room-desc{font-size:.7rem;color:#2e2e50;line-height:1.5;flex:1}
+
+    .connector{display:flex;align-items:center;justify-content:center;width:28px;color:#1e1e30;font-size:.85rem;flex-shrink:0;user-select:none}
+
+    .tokens{display:flex;flex-wrap:wrap;gap:.4rem;margin-top:.8rem;min-height:32px}
+
+    .token{
+      display:flex;align-items:center;gap:.35rem;
+      background:var(--bg);
+      border:1px solid var(--border);
+      padding:.25rem .5rem;
+      cursor:pointer;
+      transition:border-color .2s,background .2s;
     }
+    .token:hover{border-color:#444}
+    .token.sel{background:#0d0d1a}
 
-    /* ── NAV ── */
-    nav {
-      border-bottom: 1px solid var(--border);
-      padding: 1rem 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+    .tok-img{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0}
+    .tok-letter{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:bold;flex-shrink:0}
+    .tok-name{font-size:.68rem;font-weight:bold}
+    .tok-act{font-size:.6rem;color:var(--muted);max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* SIDE PANEL */
+    .panel{
+      position:fixed;right:0;top:0;
+      width:290px;height:100vh;
+      background:var(--surface);
+      border-left:1px solid var(--border);
+      padding:1.4rem;overflow-y:auto;
+      transform:translateX(100%);
+      transition:transform .3s ease;
+      z-index:200;
     }
-
-    .nav-title {
-      font-size: 0.8rem;
-      letter-spacing: 0.3em;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .nav-title span { color: var(--accent); }
-
-    .nav-links { display: flex; gap: 1.5rem; }
-
-    .nav-links a {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-decoration: none;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .nav-links a:hover, .nav-links a.active { color: var(--accent); }
-
-    /* ── PAGES ── */
-    .page { display: none; padding: 2rem; max-width: 1100px; margin: 0 auto; }
-    .page.active { display: block; }
-
-    /* ── STATUS DOT ── */
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      display: inline-block;
-      margin-right: 6px;
-      animation: pulse 2s infinite;
-    }
-    .status-dot.running { background: var(--green); }
-    .status-dot.sleeping { background: var(--yellow); }
-    .status-dot.stopped { background: var(--red); animation: none; }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.4; }
-    }
-
-    /* ── GRID ── */
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-
-    @media (max-width: 700px) {
-      .grid-2, .grid-3 { grid-template-columns: 1fr; }
-    }
-
-    /* ── CARDS ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 1.2rem;
-    }
-
-    .card-title {
-      font-size: 0.7rem;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 0.8rem;
-    }
-
-    /* ── AGENT CARD ── */
-    .agent-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 1.2rem;
-      transition: border-color 0.2s;
-    }
-
-    .agent-card:hover { border-color: var(--accent); }
-
-    .agent-header {
-      display: flex;
-      align-items: center;
-      gap: 0.8rem;
-      margin-bottom: 1rem;
-    }
-
-    .agent-avatar {
-      width: 40px; height: 40px;
-      background: var(--accent);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      font-size: 1rem;
-      flex-shrink: 0;
-    }
-
-    .agent-name { font-weight: bold; font-size: 1rem; }
-    .agent-meta { font-size: 0.75rem; color: var(--muted); }
-
-    .agent-stat {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      padding: 0.3rem 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .agent-stat:last-child { border-bottom: none; }
-    .agent-stat .label { color: var(--muted); }
-    .agent-stat .value { color: var(--text); }
-
-    /* ── RELATIONSHIP BARS ── */
-    .rel-section { margin-top: 1rem; }
-
-    .rel-title {
-      font-size: 0.7rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.5rem;
-    }
-
-    .rel-item { margin-bottom: 0.6rem; }
-
-    .rel-header {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      margin-bottom: 0.2rem;
-    }
-
-    .rel-name { color: var(--text); }
-    .rel-status { color: var(--muted); font-size: 0.7rem; }
-
-    .bar-row { display: flex; gap: 4px; margin-bottom: 2px; }
-
-    .bar-label {
-      font-size: 0.65rem;
-      color: var(--muted);
-      width: 60px;
-      flex-shrink: 0;
-    }
-
-    .bar-track {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-top: 1px;
-    }
-
-    .bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.5s ease;
-    }
-
-    .bar-fill.trust      { background: var(--accent); }
-    .bar-fill.friendship { background: var(--green); }
-    .bar-fill.romantic   { background: var(--accent2); }
-    .bar-fill.rivalry    { background: var(--red); }
-
-    /* ── CONVERSATION LOG ── */
-    .conv-entry {
-      border-left: 3px solid var(--border);
-      padding: 0.8rem 1rem;
-      margin-bottom: 0.8rem;
-      transition: border-color 0.2s;
-    }
-
-    .conv-entry:hover { border-color: var(--accent); }
-    .conv-entry.new { border-color: var(--accent); }
-
-    .conv-meta {
-      font-size: 0.7rem;
-      color: var(--muted);
-      margin-bottom: 0.5rem;
-    }
-
-    .conv-line {
-      font-size: 0.85rem;
-      line-height: 1.5;
-      padding: 0.2rem 0;
-    }
-
-    .conv-line .speaker {
-      color: var(--accent);
-      font-weight: bold;
-      margin-right: 0.5rem;
-    }
-
-    /* ── DIRECTOR PANEL ── */
-    .director-panel {
-      background: var(--surface);
-      border: 1px solid var(--accent);
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-    }
-
-    .director-title {
-      font-size: 0.75rem;
-      color: var(--accent);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-    }
-
-    .director-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
-
-    .director-row input, .director-row textarea {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.6rem 0.8rem;
-      font-family: inherit;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    .director-row input:focus,
-    .director-row textarea:focus { border-color: var(--accent); }
-
-    .btn {
-      background: var(--accent);
-      border: none;
-      color: white;
-      padding: 0.6rem 1.2rem;
-      font-family: inherit;
-      font-size: 0.85rem;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .btn:hover { opacity: 0.85; }
-    .btn.secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
-
-    /* ── META BAR ── */
-    .meta-bar {
-      display: flex;
-      gap: 2rem;
-      margin-bottom: 2rem;
-      padding: 1rem;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      font-size: 0.8rem;
-    }
-
-    .meta-item .label { color: var(--muted); margin-right: 0.5rem; }
-
-    /* ── LOGIN/ONBOARD ── */
-    #onboard-page { max-width: 640px; }
-
-    .login-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.8rem;
-      max-width: 300px;
-    }
-
-    .login-form input {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.7rem 1rem;
-      font-family: inherit;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    .login-form input:focus { border-color: var(--accent); }
-
-    .page-title {
-      font-size: 1.3rem;
-      font-weight: bold;
-      margin-bottom: 0.3rem;
-    }
-
-    .page-subtitle {
-      font-size: 0.8rem;
-      color: var(--muted);
-      margin-bottom: 2rem;
-    }
-
-    .progress-bar {
-      width: 100%;
-      height: 2px;
-      background: var(--border);
-      margin-bottom: 1.5rem;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: var(--accent);
-      transition: width 0.4s ease;
-    }
-
-    .chat-log {
-      max-height: 350px;
-      overflow-y: auto;
-      margin-bottom: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .msg { display: flex; flex-direction: column; gap: 0.2rem; }
-
-    .msg.ai .spk { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
-    .msg.human .spk { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; text-align: right; }
-
-    .msg.ai .bbl { background: var(--surface); border-left: 2px solid var(--accent); padding: 0.7rem 1rem; font-size: 0.9rem; line-height: 1.6; }
-    .msg.human .bbl { background: #0d0d1a; border-right: 2px solid var(--border); padding: 0.7rem 1rem; font-size: 0.9rem; line-height: 1.6; text-align: right; }
-
-    .question-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      padding: 1rem;
-      font-size: 0.9rem;
-      line-height: 1.5;
-      color: #ccc;
-      margin-bottom: 1rem;
-    }
-
-    .input-row { display: flex; gap: 0.5rem; }
-
-    .input-row textarea {
-      flex: 1;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 0.7rem;
-      font-family: inherit;
-      font-size: 0.9rem;
-      resize: none;
-      height: 70px;
-      outline: none;
-    }
-
-    .input-row textarea:focus { border-color: var(--accent); }
-
-    .error-msg { color: var(--red); font-size: 0.8rem; min-height: 1rem; }
-
-    .typing { display: none; gap: 4px; align-items: center; padding: 0.4rem 0; }
-    .typing span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: bounce 1s infinite; }
-    .typing span:nth-child(2) { animation-delay: 0.2s; }
-    .typing span:nth-child(3) { animation-delay: 0.4s; }
-
-    @keyframes bounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-5px); }
-    }
-
-    .done-box { text-align: center; padding: 2rem; }
-    .done-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-    .done-title { font-size: 1.3rem; color: var(--accent); margin-bottom: 1rem; }
-    .done-msg { color: var(--muted); line-height: 1.6; margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .preview { background: var(--surface); border-left: 2px solid var(--accent); padding: 1rem; font-size: 0.8rem; color: #aaa; line-height: 1.6; text-align: left; margin-bottom: 1.5rem; }
-
-    .empty { color: var(--muted); font-size: 0.85rem; padding: 1rem 0; }
+    .panel.open{transform:translateX(0)}
+    .panel-close{position:absolute;top:.9rem;right:.9rem;color:var(--muted);cursor:pointer;font-size:1.1rem}
+    .panel-close:hover{color:var(--text)}
+
+    .pan-img{width:52px;height:52px;border-radius:50%;object-fit:cover;margin-bottom:.8rem}
+    .pan-letter{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:bold;margin-bottom:.8rem}
+    .pan-name{font-size:1rem;font-weight:bold;margin-bottom:.15rem}
+    .pan-act{font-size:.7rem;color:var(--muted);margin-bottom:.9rem}
+
+    .think{background:var(--bg);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.74rem;color:#aaa;line-height:1.5;font-style:italic;margin-bottom:.9rem}
+
+    .stat{display:flex;justify-content:space-between;font-size:.72rem;padding:.28rem 0;border-bottom:1px solid var(--border)}
+    .stat .lbl{color:var(--muted)}
+
+    .sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .5rem}
+
+    .rel{margin-bottom:.7rem}
+    .rel-h{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:.2rem}
+    .rel-s{color:var(--muted);font-size:.6rem}
+    .bar-r{display:flex;gap:3px;align-items:center;margin-bottom:2px}
+    .bar-l{font-size:.56rem;color:var(--muted);width:50px;flex-shrink:0}
+    .bar-t{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+    .bar-f{height:100%;border-radius:2px;transition:width .5s}
+    .bar-f.t{background:var(--accent)}
+    .bar-f.f{background:var(--green)}
+    .bar-f.r{background:var(--pink)}
+    .bar-f.v{background:var(--red)}
+
+    /* CONVS */
+    .conv{border-left:2px solid var(--border);padding:.6rem .9rem;margin-bottom:.7rem}
+    .conv:hover{border-color:var(--accent)}
+    .conv-m{font-size:.6rem;color:var(--muted);margin-bottom:.35rem}
+    .conv-l{font-size:.78rem;line-height:1.5;padding:.1rem 0}
+    .conv-l .spk{color:var(--accent);font-weight:bold;margin-right:.3rem}
+
+    /* DIRECTOR */
+    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.1rem;margin-bottom:1.3rem}
+    .dir-title{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.7rem}
+    .dir-row{display:flex;gap:.4rem;margin-bottom:.4rem}
+    .dir-row input,.dir-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;outline:none}
+    .dir-row input:focus,.dir-row textarea:focus{border-color:var(--accent)}
+
+    /* ONBOARD */
+    .ob-wrap{max-width:560px}
+    .ob-title{font-size:1.1rem;font-weight:bold;margin-bottom:.25rem}
+    .ob-sub{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
+    .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:250px}
+    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.62rem;font-family:inherit;font-size:.86rem;outline:none}
+    .ob-form input:focus{border-color:var(--accent)}
+    .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem}
+    .prog-f{height:100%;background:var(--accent);transition:width .4s}
+    .chat{max-height:290px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem}
+    .msg{display:flex;flex-direction:column;gap:.12rem}
+    .msg.ai .sp{font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+    .msg.hu .sp{font-size:.6rem;color:var(--muted);text-transform:uppercase;text-align:right}
+    .msg.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.8rem;line-height:1.5}
+    .msg.hu .bb{background:#0d0d1a;border-right:2px solid var(--border);padding:.5rem .7rem;font-size:.8rem;line-height:1.5;text-align:right}
+    .qbox{background:var(--surface);border:1px solid var(--border);padding:.7rem;font-size:.8rem;line-height:1.5;color:#ccc;margin-bottom:.7rem}
+    .in-row{display:flex;gap:.4rem}
+    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;resize:none;height:60px;outline:none}
+    .in-row textarea:focus{border-color:var(--accent)}
+    .err{color:var(--red);font-size:.7rem;min-height:.9rem}
+    .typing{display:none;gap:4px;align-items:center;padding:.25rem 0}
+    .typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite}
+    .typing span:nth-child(2){animation-delay:.2s}
+    .typing span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .done{text-align:center;padding:1.8rem}
+    .done-i{font-size:1.8rem;margin-bottom:.6rem}
+    .done-t{font-size:1rem;color:var(--accent);margin-bottom:.6rem}
+    .done-m{color:var(--muted);line-height:1.6;margin-bottom:.9rem;font-size:.8rem}
+    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;text-align:left;margin-bottom:.9rem}
+
+    .btn{background:var(--accent);border:none;color:#fff;padding:.52rem 1rem;font-family:inherit;font-size:.78rem;cursor:pointer}
+    .btn:hover{opacity:.85}
+    .empty{color:var(--muted);font-size:.78rem;padding:.8rem 0}
+
+    .pg-title{font-size:1.1rem;font-weight:bold;margin-bottom:.25rem}
+    .pg-sub{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
   </style>
 </head>
 <body>
 
 <nav>
-  <div class="nav-title">The <span>Simulation</span></div>
-  <div class="nav-links">
-    <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">Dashboard</a>
-    <a onclick="showPage('conversations')" id="nav-conversations">Conversations</a>
-    <a onclick="showPage('director')" id="nav-director">Director</a>
-    <a onclick="showPage('onboard')" id="nav-onboard">Onboard</a>
+  <div class="logo">THE <span>SIMULATION</span></div>
+  <div class="links">
+    <a onclick="go('map')" id="n-map" class="on">Map</a>
+    <a onclick="go('convs')" id="n-convs">Conversations</a>
+    <a onclick="go('dir')" id="n-dir">Director</a>
+    <a onclick="go('ob')" id="n-ob">Onboard</a>
   </div>
 </nav>
 
-<!-- ── DASHBOARD ── -->
-<div class="page active" id="dashboard-page">
-  <div class="meta-bar" id="meta-bar">
-    <div class="meta-item"><span class="label">Status</span><span id="sim-status"><span class="status-dot stopped"></span>Loading...</span></div>
-    <div class="meta-item"><span class="label">Tick</span><span id="sim-tick">—</span></div>
-    <div class="meta-item"><span class="label">Last Update</span><span id="sim-last">—</span></div>
-  </div>
+<!-- SIDE PANEL -->
+<div class="panel" id="panel">
+  <div class="panel-close" onclick="closePanel()">✕</div>
+  <div id="p-img-wrap"></div>
+  <div class="pan-name" id="p-name"></div>
+  <div class="pan-act" id="p-act"></div>
+  <div class="think" id="p-think"></div>
+  <div class="stat"><span class="lbl">mood</span><span id="p-mood"></span></div>
+  <div class="stat"><span class="lbl">location</span><span id="p-loc"></span></div>
+  <div class="stat"><span class="lbl">chats today</span><span id="p-chats"></span></div>
+  <div class="sec">Relationships</div>
+  <div id="p-rels"></div>
+</div>
 
-  <div class="grid-3" id="agents-grid">
-    <div class="empty">Loading agents...</div>
+<!-- MAP PAGE -->
+<div class="page on" id="map-page">
+  <div class="meta">
+    <div><span class="lbl">Status</span><span id="m-status"><span class="dot stopped"></span>Loading...</span></div>
+    <div><span class="lbl">Tick</span><span id="m-tick">—</span></div>
+    <div><span class="lbl">Updated</span><span id="m-upd">—</span></div>
+  </div>
+  <div id="map-wrap"><div class="empty">Waiting for simulation...</div></div>
+</div>
+
+<!-- CONVS PAGE -->
+<div class="page" id="convs-page">
+  <div class="pg-title">Conversations</div>
+  <div class="pg-sub">Everything said in the simulation</div>
+  <div id="conv-wrap"><div class="empty">No conversations yet...</div></div>
+</div>
+
+<!-- DIRECTOR PAGE -->
+<div class="page" id="dir-page">
+  <div class="pg-title">Director</div>
+  <div class="pg-sub">Shape what happens today</div>
+  <div class="dir-box">
+    <div class="dir-title">◈ Send Instruction</div>
+    <div class="dir-row"><input type="password" id="d-pw" placeholder="director password"/></div>
+    <div class="dir-row"><textarea id="d-inst" style="height:65px" placeholder="e.g. 'Joseph gets bad news today'"></textarea></div>
+    <div class="dir-row"><button class="btn" onclick="sendDir()">Send →</button></div>
+    <div class="err" id="d-err"></div>
   </div>
 </div>
 
-<!-- ── CONVERSATIONS ── -->
-<div class="page" id="conversations-page">
-  <div class="page-title">Conversation Log</div>
-  <div class="page-subtitle">Everything that's been said in the simulation</div>
-  <div id="conv-log"><div class="empty">No conversations yet...</div></div>
-</div>
-
-<!-- ── DIRECTOR ── -->
-<div class="page" id="director-page">
-  <div class="page-title">Director Panel</div>
-  <div class="page-subtitle">Tell the simulation what happens today</div>
-
-  <div class="director-panel">
-    <div class="director-title">◈ Send Instruction</div>
-    <div class="director-row">
-      <input type="password" id="dir-password" placeholder="director password"/>
-    </div>
-    <div class="director-row">
-      <textarea id="dir-instruction" placeholder="e.g. 'Joseph receives some bad news today' or 'There's a party tonight'" rows="3" style="height:80px"></textarea>
-    </div>
-    <div class="director-row">
-      <button class="btn" onclick="sendDirector()">Send →</button>
-    </div>
-    <div class="error-msg" id="dir-error"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Example Instructions</div>
-    <div style="font-size:0.85rem; line-height:2; color: var(--muted);">
-      "Joseph and Evie run into an old friend today"<br>
-      "There's a thunderstorm keeping everyone inside"<br>
-      "Joseph gets some unexpected good news about his company"<br>
-      "A new character named Alex moves into the building"<br>
-      "It's someone's birthday today"
-    </div>
-  </div>
-</div>
-
-<!-- ── ONBOARD ── -->
-<div class="page" id="onboard-page">
-  <div id="login-view">
-    <div class="page-title">Character Onboarding</div>
-    <div class="page-subtitle">Log in to calibrate your digital self</div>
-    <div class="login-form">
-      <input type="text" id="agent-input" placeholder="your name" autocomplete="off"/>
-      <input type="password" id="password-input" placeholder="password"/>
-      <button class="btn" id="login-btn" onclick="login()">Enter →</button>
-      <div class="error-msg" id="login-error"></div>
-    </div>
-  </div>
-
-  <div id="chat-view" style="display:none">
-    <div class="agent-header" style="margin-bottom:1.5rem">
-      <div class="agent-avatar" id="ob-avatar">?</div>
-      <div>
-        <div class="agent-name" id="ob-name">Loading...</div>
-        <div class="agent-meta">digital self — onboarding</div>
+<!-- ONBOARD PAGE -->
+<div class="page" id="ob-page">
+  <div class="ob-wrap">
+    <div id="ob-login">
+      <div class="ob-title">Onboarding</div>
+      <div class="ob-sub">Calibrate your digital self</div>
+      <div class="ob-form">
+        <input type="text" id="ob-name-in" placeholder="your name" autocomplete="off"/>
+        <input type="password" id="ob-pw" placeholder="password"/>
+        <button class="btn" id="ob-btn" onclick="obLogin()">Enter →</button>
+        <div class="err" id="ob-err"></div>
       </div>
     </div>
-
-    <div class="progress-bar"><div class="progress-fill" id="ob-progress" style="width:0%"></div></div>
-    <div class="chat-log" id="ob-chat"></div>
-    <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
-    <div class="question-box" id="ob-question"></div>
-    <div class="input-row">
-      <textarea id="ob-answer" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
-      <button class="btn" id="ob-send" onclick="obSend()">→</button>
+    <div id="ob-chat-view" style="display:none">
+      <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
+        <div id="ob-av"></div>
+        <div><div style="font-weight:bold;font-size:.9rem" id="ob-ag-name"></div><div style="font-size:.65rem;color:var(--muted)">digital self</div></div>
+      </div>
+      <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
+      <div class="chat" id="ob-msgs"></div>
+      <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
+      <div class="qbox" id="ob-q"></div>
+      <div class="in-row">
+        <textarea id="ob-ans" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
+        <button class="btn" id="ob-send" onclick="obSend()">→</button>
+      </div>
     </div>
-  </div>
-
-  <div id="done-view" style="display:none" class="done-box">
-    <div class="done-icon">◈</div>
-    <div class="done-title">Calibration Complete</div>
-    <div class="done-msg" id="done-msg"></div>
-    <div class="preview" id="done-preview"></div>
-    <button class="btn" onclick="location.reload()">Done</button>
+    <div id="ob-done" style="display:none" class="done">
+      <div class="done-i">◈</div>
+      <div class="done-t">Calibration Complete</div>
+      <div class="done-m" id="ob-done-msg"></div>
+      <div class="preview-b" id="ob-done-pre"></div>
+      <button class="btn" onclick="location.reload()">Done</button>
+    </div>
   </div>
 </div>
 
 <script>
-  let agentName = "";
-  let totalQ = 0;
+  // ── State ──────────────────────────────────────────────────────────────────
+  let sel = null, obAgent = "", obTotal = 0, cache = {};
+  const C = {joseph:"#7c6fff", evie:"#ff6fb0", martin:"#4fffb0"};
+  const gc = n => C[n?.toLowerCase()] || "#7c6fff";
 
-  // ── Navigation ──────────────────────────────────────────────────────────────
-
-  function showPage(name) {
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
-    document.getElementById(name + "-page").classList.add("active");
-    document.getElementById("nav-" + name).classList.add("active");
-    if (name === "dashboard") loadDashboard();
-    if (name === "conversations") loadConversations();
+  // ── Nav ────────────────────────────────────────────────────────────────────
+  function go(name) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("on"));
+    document.querySelectorAll(".links a").forEach(a => a.classList.remove("on"));
+    document.getElementById(name+"-page").classList.add("on");
+    document.getElementById("n-"+name).classList.add("on");
+    if (name==="map")   loadMap();
+    if (name==="convs") loadConvs();
   }
 
-  // ── Dashboard ───────────────────────────────────────────────────────────────
-
-  async function loadDashboard() {
+  // ── Map ────────────────────────────────────────────────────────────────────
+  async function loadMap() {
     try {
-      const res = await fetch("/api/status");
-      const data = await res.json();
+      const d = await (await fetch("/api/status")).json();
+      cache = d;
 
-      // Meta bar
-      const meta = data.simulation?.meta || {};
-      const status = meta.status || "unknown";
-      const dotClass = status === "running" ? "running" : status === "sleeping" ? "sleeping" : "stopped";
-      document.getElementById("sim-status").innerHTML = `<span class="status-dot ${dotClass}"></span>${status}`;
-      document.getElementById("sim-tick").textContent = meta.tick_count || "—";
-      document.getElementById("sim-last").textContent = meta.last_tick || "—";
+      // meta bar
+      const meta = d?.simulation?.meta || {};
+      const s = meta.status || "unknown";
+      const dc = s==="running"?"running":s==="sleeping"?"sleeping":"stopped";
+      document.getElementById("m-status").innerHTML = `<span class="dot ${dc}"></span>${s}`;
+      document.getElementById("m-tick").textContent = meta.tick_count || "—";
+      document.getElementById("m-upd").textContent  = meta.last_tick  || "—";
 
-      // Agents
-      const agents = data.agents || {};
-      const grid = document.getElementById("agents-grid");
-
-      if (Object.keys(agents).length === 0) {
-        grid.innerHTML = '<div class="empty">No agents found. Start the simulation!</div>';
+      const wd = d?.world;
+      if (!wd?.rooms) {
+        document.getElementById("map-wrap").innerHTML = '<div class="empty">Waiting for simulation to start...</div>';
         return;
       }
 
-      grid.innerHTML = "";
-      for (const [name, agent] of Object.entries(agents)) {
-        const status_data = agent.status || agent;
-        const relationships = agent.relationships || {};
-
-        let relHTML = "";
-        for (const [other, rel] of Object.entries(relationships)) {
-          relHTML += `
-            <div class="rel-item">
-              <div class="rel-header">
-                <span class="rel-name">${other}</span>
-                <span class="rel-status">${rel.current_status || rel.status || "friend"}</span>
-              </div>
-              <div class="bar-row"><span class="bar-label">trust</span><div class="bar-track"><div class="bar-fill trust" style="width:${rel.trust || 0}%"></div></div></div>
-              <div class="bar-row"><span class="bar-label">friendship</span><div class="bar-track"><div class="bar-fill friendship" style="width:${rel.friendship || 0}%"></div></div></div>
-              <div class="bar-row"><span class="bar-label">romantic</span><div class="bar-track"><div class="bar-fill romantic" style="width:${rel.romantic || 0}%"></div></div></div>
-              <div class="bar-row"><span class="bar-label">rivalry</span><div class="bar-track"><div class="bar-fill rivalry" style="width:${rel.rivalry || 0}%"></div></div></div>
-            </div>`;
-        }
-
-        grid.innerHTML += `
-          <div class="agent-card">
-            <div class="agent-header">
-              <div class="agent-avatar">${name[0].toUpperCase()}</div>
-              <div>
-                <div class="agent-name">${name}</div>
-                <div class="agent-meta">${status_data.activity || "..."}</div>
-              </div>
-            </div>
-            <div class="agent-stat"><span class="label">mood</span><span class="value">${status_data.mood || "—"}</span></div>
-            <div class="agent-stat"><span class="label">location</span><span class="value">${status_data.location || "—"}</span></div>
-            <div class="agent-stat"><span class="label">chats today</span><span class="value">${status_data.conversations_today || 0}</span></div>
-            ${relHTML ? `<div class="rel-section"><div class="rel-title">Relationships</div>${relHTML}</div>` : ""}
-          </div>`;
-      }
-    } catch(e) {
-      console.error("Dashboard load failed:", e);
-    }
+      buildMap(wd, d?.agents || {});
+    } catch(e) { console.error(e); }
   }
 
-  // ── Conversations ────────────────────────────────────────────────────────────
+  function buildMap(wd, agents) {
+    const rooms = wd.rooms;
+    const pos   = wd.agent_positions || {};
 
-  async function loadConversations() {
-    try {
-      const res = await fetch("/api/status");
-      const data = await res.json();
-      const convs = data.conversations || {};
-      const log = document.getElementById("conv-log");
+    // sort rooms by x
+    const sorted = Object.entries(rooms).sort((a,b) => (a[1].position?.x||0) - (b[1].position?.x||0));
 
-      const entries = Object.values(convs).reverse();
-      if (entries.length === 0) {
-        log.innerHTML = '<div class="empty">No conversations yet...</div>';
-        return;
-      }
+    let html = '<div class="map-wrap">';
 
-      log.innerHTML = "";
-      for (const conv of entries) {
-        const lines = (conv.lines || []).map(l => {
-          const colon = l.indexOf(":");
-          if (colon > -1) {
-            const speaker = l.substring(0, colon);
-            const text = l.substring(colon + 1).trim();
-            return `<div class="conv-line"><span class="speaker">${speaker}:</span>${text}</div>`;
-          }
-          return `<div class="conv-line">${l}</div>`;
-        }).join("");
+    sorted.forEach(([rid, room], i) => {
+      const here = Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
 
-        log.innerHTML += `
-          <div class="conv-entry">
-            <div class="conv-meta">${conv.timestamp || ""} · ${(conv.participants || []).join(" & ")} · ${conv.location || ""}</div>
-            ${lines}
-          </div>`;
-      }
-    } catch(e) {
-      console.error("Conversations load failed:", e);
-    }
-  }
+      html += `<div class="room ${here.length?"occupied":""}">`;
+      html += `<div class="room-name">${room.name}</div>`;
+      html += `<div class="room-desc">${room.description}</div>`;
+      html += `<div class="tokens">`;
 
-  // ── Director ─────────────────────────────────────────────────────────────────
+      here.forEach(aid => {
+        const ag  = agents[aid]?.status || agents[aid] || {};
+        const col = gc(aid);
+        const isSel = sel === aid;
+        const imgSrc = `/static/${aid}.png`;
 
-  async function sendDirector() {
-    const instruction = document.getElementById("dir-instruction").value.trim();
-    const password    = document.getElementById("dir-password").value;
-    const err         = document.getElementById("dir-error");
+        html += `<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')" style="border-color:${isSel?col:""}">`;
+        html += `<img class="tok-img" src="${imgSrc}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" style="display:block"/>`;
+        html += `<div class="tok-letter" style="background:${col};display:none">${aid[0].toUpperCase()}</div>`;
+        html += `<div><div class="tok-name">${aid}</div><div class="tok-act">${ag.activity||"..."}</div></div>`;
+        html += `</div>`;
+      });
 
-    if (!instruction) { err.textContent = "Write an instruction first."; return; }
-    if (!password)     { err.textContent = "Enter director password."; return; }
-
-    const res = await fetch("/director", {
-      method: "POST",
-      headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({instruction, password})
+      html += `</div></div>`;
+      if (i < sorted.length - 1) html += `<div class="connector">──</div>`;
     });
-    const data = await res.json();
 
-    if (data.error) { err.textContent = data.error; return; }
-    err.textContent = "";
-    document.getElementById("dir-instruction").value = "";
-    alert("✅ Instruction sent! It will take effect on the next tick.");
+    html += '</div>';
+    document.getElementById("map-wrap").innerHTML = html;
+    if (sel) refreshPanel(sel, agents);
   }
 
-  // ── Onboarding ────────────────────────────────────────────────────────────────
+  function pick(aid) {
+    if (sel===aid) { closePanel(); return; }
+    sel = aid;
+    refreshPanel(aid, cache?.agents||{});
+    document.getElementById("panel").classList.add("open");
+    loadMap();
+  }
 
-  async function login() {
-    const agent    = document.getElementById("agent-input").value.trim().toLowerCase();
-    const password = document.getElementById("password-input").value;
-    const err      = document.getElementById("login-error");
-    const btn      = document.getElementById("login-btn");
+  function refreshPanel(aid, agents) {
+    const ag  = agents[aid]?.status || agents[aid] || {};
+    const lt  = agents[aid]?.relationships || {};
+    const col = gc(aid);
 
-    if (!agent || !password) { err.textContent = "Fill in both fields."; return; }
-    btn.disabled = true; btn.textContent = "..."; err.textContent = "";
+    // avatar
+    const wrap = document.getElementById("p-img-wrap");
+    wrap.innerHTML = `<img class="pan-img" src="/static/${aid}.png" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
 
-    const res  = await fetch("/login", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({agent, password}) });
-    const data = await res.json();
+    document.getElementById("p-name").textContent  = aid;
+    document.getElementById("p-act").textContent   = ag.activity  || "...";
+    document.getElementById("p-think").textContent = ag.thought ? `"${ag.thought}"` : "...";
+    document.getElementById("p-mood").textContent  = ag.mood      || "—";
+    document.getElementById("p-loc").textContent   = ag.location  || "—";
+    document.getElementById("p-chats").textContent = ag.conversations_today || 0;
 
-    if (!data.success) { err.textContent = data.error; btn.disabled = false; btn.textContent = "Enter →"; return; }
+    let rh = "";
+    for (const [o,r] of Object.entries(lt)) {
+      rh += `<div class="rel">
+        <div class="rel-h"><span>${o}</span><span class="rel-s">${r.status||r.current_status||"friend"}</span></div>
+        <div class="bar-r"><span class="bar-l">trust</span><div class="bar-t"><div class="bar-f t" style="width:${r.trust||0}%"></div></div></div>
+        <div class="bar-r"><span class="bar-l">friendship</span><div class="bar-t"><div class="bar-f f" style="width:${r.friendship||0}%"></div></div></div>
+        <div class="bar-r"><span class="bar-l">romantic</span><div class="bar-t"><div class="bar-f r" style="width:${r.romantic||0}%"></div></div></div>
+        <div class="bar-r"><span class="bar-l">rivalry</span><div class="bar-t"><div class="bar-f v" style="width:${r.rivalry||0}%"></div></div></div>
+      </div>`;
+    }
+    document.getElementById("p-rels").innerHTML = rh || '<div class="empty">No relationships yet</div>';
+  }
 
-    agentName = data.agent;
-    document.getElementById("login-view").style.display = "none";
-    document.getElementById("chat-view").style.display = "block";
-    document.getElementById("ob-avatar").textContent = agentName[0].toUpperCase();
-    document.getElementById("ob-name").textContent = agentName[0].toUpperCase() + agentName.slice(1);
+  function closePanel() {
+    sel = null;
+    document.getElementById("panel").classList.remove("open");
+    loadMap();
+  }
 
-    const start = await (await fetch("/onboard/start")).json();
-    totalQ = start.total_questions;
-    addMsg("ai", start.message);
-    setTimeout(() => setQ(start.question, 0, totalQ), 400);
+  // ── Convs ──────────────────────────────────────────────────────────────────
+  async function loadConvs() {
+    const d = await (await fetch("/api/status")).json();
+    const convs = Object.values(d?.conversations||{}).reverse();
+    const wrap = document.getElementById("conv-wrap");
+    if (!convs.length) { wrap.innerHTML='<div class="empty">No conversations yet...</div>'; return; }
+    wrap.innerHTML = convs.map(c => {
+      const lines = (c.lines||[]).map(l => {
+        const i = l.indexOf(":");
+        return i>-1
+          ? `<div class="conv-l"><span class="spk">${l.slice(0,i)}:</span>${l.slice(i+1).trim()}</div>`
+          : `<div class="conv-l">${l}</div>`;
+      }).join("");
+      return `<div class="conv"><div class="conv-m">${c.timestamp||""} · ${(c.participants||[]).join(" & ")} · ${c.location||""}</div>${lines}</div>`;
+    }).join("");
+  }
+
+  // ── Director ───────────────────────────────────────────────────────────────
+  async function sendDir() {
+    const inst = document.getElementById("d-inst").value.trim();
+    const pw   = document.getElementById("d-pw").value;
+    const err  = document.getElementById("d-err");
+    if (!inst) { err.textContent="Write something first."; return; }
+    if (!pw)   { err.textContent="Enter director password."; return; }
+    const d = await (await fetch("/director",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction:inst,password:pw})})).json();
+    if (d.error) { err.textContent=d.error; return; }
+    err.textContent="";
+    document.getElementById("d-inst").value="";
+    alert("✅ Sent! Takes effect next tick.");
+  }
+
+  // ── Onboard ────────────────────────────────────────────────────────────────
+  async function obLogin() {
+    const name = document.getElementById("ob-name-in").value.trim().toLowerCase();
+    const pw   = document.getElementById("ob-pw").value;
+    const err  = document.getElementById("ob-err");
+    const btn  = document.getElementById("ob-btn");
+    if (!name||!pw) { err.textContent="Fill both fields."; return; }
+    btn.disabled=true; btn.textContent="..."; err.textContent="";
+    const d = await (await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:name,password:pw})})).json();
+    if (!d.success) { err.textContent=d.error; btn.disabled=false; btn.textContent="Enter →"; return; }
+    obAgent = d.agent;
+    document.getElementById("ob-login").style.display="none";
+    document.getElementById("ob-chat-view").style.display="block";
+
+    // avatar
+    const avWrap = document.getElementById("ob-av");
+    avWrap.innerHTML = `<img style="width:36px;height:36px;border-radius:50%;object-fit:cover" src="/static/${obAgent}.png" onerror="this.outerHTML='<div style=\\'width:36px;height:36px;border-radius:50%;background:${gc(obAgent)};display:flex;align-items:center;justify-content:center;font-weight:bold\\'>${obAgent[0].toUpperCase()}</div>'"/>`;
+    document.getElementById("ob-ag-name").textContent = obAgent[0].toUpperCase()+obAgent.slice(1);
+
+    const s = await (await fetch("/onboard/start")).json();
+    obTotal = s.total_questions;
+    addObMsg("ai", s.message);
+    setTimeout(()=>setQ(s.question,0,obTotal),400);
   }
 
   async function obSend() {
-    const ta     = document.getElementById("ob-answer");
-    const answer = ta.value.trim();
-    if (!answer) return;
-
-    addMsg("human", answer);
-    ta.value = "";
-    document.getElementById("ob-send").disabled = true;
-    document.getElementById("ob-typing").style.display = "flex";
-
-    const res  = await fetch("/onboard/answer", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({answer}) });
-    const data = await res.json();
-
-    document.getElementById("ob-typing").style.display = "none";
-    document.getElementById("ob-send").disabled = false;
-    addMsg("ai", data.reaction);
-
-    if (data.done) {
-      setTimeout(() => {
-        document.getElementById("chat-view").style.display = "none";
-        document.getElementById("done-view").style.display = "block";
-        document.getElementById("done-msg").textContent = data.reaction;
-        document.getElementById("done-preview").textContent = data.new_prompt_preview;
-      }, 1500);
-    } else {
-      setTimeout(() => setQ(data.question, data.question_index, totalQ), 400);
-    }
+    const ta = document.getElementById("ob-ans");
+    const ans = ta.value.trim();
+    if (!ans) return;
+    addObMsg("hu", ans); ta.value="";
+    document.getElementById("ob-send").disabled=true;
+    document.getElementById("ob-typing").style.display="flex";
+    const d = await (await fetch("/onboard/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:ans})})).json();
+    document.getElementById("ob-typing").style.display="none";
+    document.getElementById("ob-send").disabled=false;
+    addObMsg("ai", d.reaction);
+    if (d.done) {
+      setTimeout(()=>{
+        document.getElementById("ob-chat-view").style.display="none";
+        document.getElementById("ob-done").style.display="block";
+        document.getElementById("ob-done-msg").textContent=d.reaction;
+        document.getElementById("ob-done-pre").textContent=d.new_prompt_preview;
+      },1500);
+    } else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
   }
 
-  function addMsg(type, text) {
-    const log = document.getElementById("ob-chat");
-    const msg = document.createElement("div");
-    msg.className = `msg ${type}`;
-    msg.innerHTML = `<div class="spk">${type === "ai" ? agentName + " (digital)" : "You"}</div><div class="bbl">${text}</div>`;
-    log.appendChild(msg);
-    log.scrollTop = log.scrollHeight;
+  function addObMsg(type,text){
+    const log=document.getElementById("ob-msgs");
+    const m=document.createElement("div");
+    m.className=`msg ${type}`;
+    m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
+    log.appendChild(m); log.scrollTop=log.scrollHeight;
   }
 
-  function setQ(q, i, total) {
-    document.getElementById("ob-question").textContent = q;
-    document.getElementById("ob-progress").style.width = (i / total * 100) + "%";
-    document.getElementById("ob-answer").focus();
+  function setQ(q,i,t){
+    document.getElementById("ob-q").textContent=q;
+    document.getElementById("ob-prog").style.width=(i/t*100)+"%";
+    document.getElementById("ob-ans").focus();
   }
 
-  function obKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); obSend(); } }
-  document.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("password-input")?.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
-  });
+  function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend();}}
 
-  // ── Auto refresh dashboard ──────────────────────────────────────────────────
-  loadDashboard();
-  setInterval(() => {
-    const active = document.querySelector(".page.active");
-    if (active?.id === "dashboard-page") loadDashboard();
-    if (active?.id === "conversations-page") loadConversations();
-  }, 30000); // refresh every 30 seconds
+  // ── Auto refresh ───────────────────────────────────────────────────────────
+  loadMap();
+  setInterval(()=>{
+    const a=document.querySelector(".page.on");
+    if(a?.id==="map-page")   loadMap();
+    if(a?.id==="convs-page") loadConvs();
+  },20000);
 </script>
 </body>
 </html>
