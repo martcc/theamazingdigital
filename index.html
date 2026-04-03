@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The Simulation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #08080f;
+      --surface: #0f0f1a;
+      --border: #1e1e30;
+      --accent: #7c6fff;
+      --accent2: #ff6fb0;
+      --text: #e0e0e0;
+      --muted: #666;
+      --green: #4fffb0;
+      --red: #ff6b6b;
+      --yellow: #ffd96b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Courier New', monospace;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-title {
+      font-size: 0.8rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .nav-title span { color: var(--accent); }
+
+    .nav-links { display: flex; gap: 1.5rem; }
+
+    .nav-links a {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+    }
+
+    .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+    /* ── PAGES ── */
+    .page { display: none; padding: 2rem; max-width: 1100px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* ── STATUS DOT ── */
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+    .status-dot.running { background: var(--green); }
+    .status-dot.sleeping { background: var(--yellow); }
+    .status-dot.stopped { background: var(--red); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* ── GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+
+    @media (max-width: 700px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.2rem;
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+
+    /* ── AGENT CARD ── */
+    .agent-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.2rem;
+      transition: border-color 0.2s;
+    }
+
+    .agent-card:hover { border-color: var(--accent); }
+
+    .agent-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+    }
+
+    .agent-avatar {
+      width: 40px; height: 40px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .agent-name { font-weight: bold; font-size: 1rem; }
+    .agent-meta { font-size: 0.75rem; color: var(--muted); }
+
+    .agent-stat {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .agent-stat:last-child { border-bottom: none; }
+    .agent-stat .label { color: var(--muted); }
+    .agent-stat .value { color: var(--text); }
+
+    /* ── RELATIONSHIP BARS ── */
+    .rel-section { margin-top: 1rem; }
+
+    .rel-title {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+    }
+
+    .rel-item { margin-bottom: 0.6rem; }
+
+    .rel-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .rel-name { color: var(--text); }
+    .rel-status { color: var(--muted); font-size: 0.7rem; }
+
+    .bar-row { display: flex; gap: 4px; margin-bottom: 2px; }
+
+    .bar-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      width: 60px;
+      flex-shrink: 0;
+    }
+
+    .bar-track {
+      flex: 1;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 1px;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .bar-fill.trust      { background: var(--accent); }
+    .bar-fill.friendship { background: var(--green); }
+    .bar-fill.romantic   { background: var(--accent2); }
+    .bar-fill.rivalry    { background: var(--red); }
+
+    /* ── CONVERSATION LOG ── */
+    .conv-entry {
+      border-left: 3px solid var(--border);
+      padding: 0.8rem 1rem;
+      margin-bottom: 0.8rem;
+      transition: border-color 0.2s;
+    }
+
+    .conv-entry:hover { border-color: var(--accent); }
+    .conv-entry.new { border-color: var(--accent); }
+
+    .conv-meta {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .conv-line {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      padding: 0.2rem 0;
+    }
+
+    .conv-line .speaker {
+      color: var(--accent);
+      font-weight: bold;
+      margin-right: 0.5rem;
+    }
+
+    /* ── DIRECTOR PANEL ── */
+    .director-panel {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .director-title {
+      font-size: 0.75rem;
+      color: var(--accent);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .director-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+
+    .director-row input, .director-row textarea {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.6rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .director-row input:focus,
+    .director-row textarea:focus { border-color: var(--accent); }
+
+    .btn {
+      background: var(--accent);
+      border: none;
+      color: white;
+      padding: 0.6rem 1.2rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn:hover { opacity: 0.85; }
+    .btn.secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+
+    /* ── META BAR ── */
+    .meta-bar {
+      display: flex;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+    }
+
+    .meta-item .label { color: var(--muted); margin-right: 0.5rem; }
+
+    /* ── LOGIN/ONBOARD ── */
+    #onboard-page { max-width: 640px; }
+
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      max-width: 300px;
+    }
+
+    .login-form input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.7rem 1rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .login-form input:focus { border-color: var(--accent); }
+
+    .page-title {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin-bottom: 0.3rem;
+    }
+
+    .page-subtitle {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.4s ease;
+    }
+
+    .chat-log {
+      max-height: 350px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .msg { display: flex; flex-direction: column; gap: 0.2rem; }
+
+    .msg.ai .spk { font-size: 0.7rem; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+    .msg.human .spk { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; text-align: right; }
+
+    .msg.ai .bbl { background: var(--surface); border-left: 2px solid var(--accent); padding: 0.7rem 1rem; font-size: 0.9rem; line-height: 1.6; }
+    .msg.human .bbl { background: #0d0d1a; border-right: 2px solid var(--border); padding: 0.7rem 1rem; font-size: 0.9rem; line-height: 1.6; text-align: right; }
+
+    .question-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: #ccc;
+      margin-bottom: 1rem;
+    }
+
+    .input-row { display: flex; gap: 0.5rem; }
+
+    .input-row textarea {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.7rem;
+      font-family: inherit;
+      font-size: 0.9rem;
+      resize: none;
+      height: 70px;
+      outline: none;
+    }
+
+    .input-row textarea:focus { border-color: var(--accent); }
+
+    .error-msg { color: var(--red); font-size: 0.8rem; min-height: 1rem; }
+
+    .typing { display: none; gap: 4px; align-items: center; padding: 0.4rem 0; }
+    .typing span { width: 5px; height: 5px; background: var(--accent); border-radius: 50%; animation: bounce 1s infinite; }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    .done-box { text-align: center; padding: 2rem; }
+    .done-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .done-title { font-size: 1.3rem; color: var(--accent); margin-bottom: 1rem; }
+    .done-msg { color: var(--muted); line-height: 1.6; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .preview { background: var(--surface); border-left: 2px solid var(--accent); padding: 1rem; font-size: 0.8rem; color: #aaa; line-height: 1.6; text-align: left; margin-bottom: 1.5rem; }
+
+    .empty { color: var(--muted); font-size: 0.85rem; padding: 1rem 0; }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-title">The <span>Simulation</span></div>
+  <div class="nav-links">
+    <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">Dashboard</a>
+    <a onclick="showPage('conversations')" id="nav-conversations">Conversations</a>
+    <a onclick="showPage('director')" id="nav-director">Director</a>
+    <a onclick="showPage('onboard')" id="nav-onboard">Onboard</a>
+  </div>
+</nav>
+
+<!-- ── DASHBOARD ── -->
+<div class="page active" id="dashboard-page">
+  <div class="meta-bar" id="meta-bar">
+    <div class="meta-item"><span class="label">Status</span><span id="sim-status"><span class="status-dot stopped"></span>Loading...</span></div>
+    <div class="meta-item"><span class="label">Tick</span><span id="sim-tick">—</span></div>
+    <div class="meta-item"><span class="label">Last Update</span><span id="sim-last">—</span></div>
+  </div>
+
+  <div class="grid-3" id="agents-grid">
+    <div class="empty">Loading agents...</div>
+  </div>
+</div>
+
+<!-- ── CONVERSATIONS ── -->
+<div class="page" id="conversations-page">
+  <div class="page-title">Conversation Log</div>
+  <div class="page-subtitle">Everything that's been said in the simulation</div>
+  <div id="conv-log"><div class="empty">No conversations yet...</div></div>
+</div>
+
+<!-- ── DIRECTOR ── -->
+<div class="page" id="director-page">
+  <div class="page-title">Director Panel</div>
+  <div class="page-subtitle">Tell the simulation what happens today</div>
+
+  <div class="director-panel">
+    <div class="director-title">◈ Send Instruction</div>
+    <div class="director-row">
+      <input type="password" id="dir-password" placeholder="director password"/>
+    </div>
+    <div class="director-row">
+      <textarea id="dir-instruction" placeholder="e.g. 'Joseph receives some bad news today' or 'There's a party tonight'" rows="3" style="height:80px"></textarea>
+    </div>
+    <div class="director-row">
+      <button class="btn" onclick="sendDirector()">Send →</button>
+    </div>
+    <div class="error-msg" id="dir-error"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Example Instructions</div>
+    <div style="font-size:0.85rem; line-height:2; color: var(--muted);">
+      "Joseph and Evie run into an old friend today"<br>
+      "There's a thunderstorm keeping everyone inside"<br>
+      "Joseph gets some unexpected good news about his company"<br>
+      "A new character named Alex moves into the building"<br>
+      "It's someone's birthday today"
+    </div>
+  </div>
+</div>
+
+<!-- ── ONBOARD ── -->
+<div class="page" id="onboard-page">
+  <div id="login-view">
+    <div class="page-title">Character Onboarding</div>
+    <div class="page-subtitle">Log in to calibrate your digital self</div>
+    <div class="login-form">
+      <input type="text" id="agent-input" placeholder="your name" autocomplete="off"/>
+      <input type="password" id="password-input" placeholder="password"/>
+      <button class="btn" id="login-btn" onclick="login()">Enter →</button>
+      <div class="error-msg" id="login-error"></div>
+    </div>
+  </div>
+
+  <div id="chat-view" style="display:none">
+    <div class="agent-header" style="margin-bottom:1.5rem">
+      <div class="agent-avatar" id="ob-avatar">?</div>
+      <div>
+        <div class="agent-name" id="ob-name">Loading...</div>
+        <div class="agent-meta">digital self — onboarding</div>
+      </div>
+    </div>
+
+    <div class="progress-bar"><div class="progress-fill" id="ob-progress" style="width:0%"></div></div>
+    <div class="chat-log" id="ob-chat"></div>
+    <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
+    <div class="question-box" id="ob-question"></div>
+    <div class="input-row">
+      <textarea id="ob-answer" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
+      <button class="btn" id="ob-send" onclick="obSend()">→</button>
+    </div>
+  </div>
+
+  <div id="done-view" style="display:none" class="done-box">
+    <div class="done-icon">◈</div>
+    <div class="done-title">Calibration Complete</div>
+    <div class="done-msg" id="done-msg"></div>
+    <div class="preview" id="done-preview"></div>
+    <button class="btn" onclick="location.reload()">Done</button>
+  </div>
+</div>
+
+<script>
+  let agentName = "";
+  let totalQ = 0;
+
+  // ── Navigation ──────────────────────────────────────────────────────────────
+
+  function showPage(name) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-links a").forEach(a => a.classList.remove("active"));
+    document.getElementById(name + "-page").classList.add("active");
+    document.getElementById("nav-" + name).classList.add("active");
+    if (name === "dashboard") loadDashboard();
+    if (name === "conversations") loadConversations();
+  }
+
+  // ── Dashboard ───────────────────────────────────────────────────────────────
+
+  async function loadDashboard() {
+    try {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+
+      // Meta bar
+      const meta = data.simulation?.meta || {};
+      const status = meta.status || "unknown";
+      const dotClass = status === "running" ? "running" : status === "sleeping" ? "sleeping" : "stopped";
+      document.getElementById("sim-status").innerHTML = `<span class="status-dot ${dotClass}"></span>${status}`;
+      document.getElementById("sim-tick").textContent = meta.tick_count || "—";
+      document.getElementById("sim-last").textContent = meta.last_tick || "—";
+
+      // Agents
+      const agents = data.agents || {};
+      const grid = document.getElementById("agents-grid");
+
+      if (Object.keys(agents).length === 0) {
+        grid.innerHTML = '<div class="empty">No agents found. Start the simulation!</div>';
+        return;
+      }
+
+      grid.innerHTML = "";
+      for (const [name, agent] of Object.entries(agents)) {
+        const status_data = agent.status || agent;
+        const relationships = agent.relationships || {};
+
+        let relHTML = "";
+        for (const [other, rel] of Object.entries(relationships)) {
+          relHTML += `
+            <div class="rel-item">
+              <div class="rel-header">
+                <span class="rel-name">${other}</span>
+                <span class="rel-status">${rel.current_status || rel.status || "friend"}</span>
+              </div>
+              <div class="bar-row"><span class="bar-label">trust</span><div class="bar-track"><div class="bar-fill trust" style="width:${rel.trust || 0}%"></div></div></div>
+              <div class="bar-row"><span class="bar-label">friendship</span><div class="bar-track"><div class="bar-fill friendship" style="width:${rel.friendship || 0}%"></div></div></div>
+              <div class="bar-row"><span class="bar-label">romantic</span><div class="bar-track"><div class="bar-fill romantic" style="width:${rel.romantic || 0}%"></div></div></div>
+              <div class="bar-row"><span class="bar-label">rivalry</span><div class="bar-track"><div class="bar-fill rivalry" style="width:${rel.rivalry || 0}%"></div></div></div>
+            </div>`;
+        }
+
+        grid.innerHTML += `
+          <div class="agent-card">
+            <div class="agent-header">
+              <div class="agent-avatar">${name[0].toUpperCase()}</div>
+              <div>
+                <div class="agent-name">${name}</div>
+                <div class="agent-meta">${status_data.activity || "..."}</div>
+              </div>
+            </div>
+            <div class="agent-stat"><span class="label">mood</span><span class="value">${status_data.mood || "—"}</span></div>
+            <div class="agent-stat"><span class="label">location</span><span class="value">${status_data.location || "—"}</span></div>
+            <div class="agent-stat"><span class="label">chats today</span><span class="value">${status_data.conversations_today || 0}</span></div>
+            ${relHTML ? `<div class="rel-section"><div class="rel-title">Relationships</div>${relHTML}</div>` : ""}
+          </div>`;
+      }
+    } catch(e) {
+      console.error("Dashboard load failed:", e);
+    }
+  }
+
+  // ── Conversations ────────────────────────────────────────────────────────────
+
+  async function loadConversations() {
+    try {
+      const res = await fetch("/api/status");
+      const data = await res.json();
+      const convs = data.conversations || {};
+      const log = document.getElementById("conv-log");
+
+      const entries = Object.values(convs).reverse();
+      if (entries.length === 0) {
+        log.innerHTML = '<div class="empty">No conversations yet...</div>';
+        return;
+      }
+
+      log.innerHTML = "";
+      for (const conv of entries) {
+        const lines = (conv.lines || []).map(l => {
+          const colon = l.indexOf(":");
+          if (colon > -1) {
+            const speaker = l.substring(0, colon);
+            const text = l.substring(colon + 1).trim();
+            return `<div class="conv-line"><span class="speaker">${speaker}:</span>${text}</div>`;
+          }
+          return `<div class="conv-line">${l}</div>`;
+        }).join("");
+
+        log.innerHTML += `
+          <div class="conv-entry">
+            <div class="conv-meta">${conv.timestamp || ""} · ${(conv.participants || []).join(" & ")} · ${conv.location || ""}</div>
+            ${lines}
+          </div>`;
+      }
+    } catch(e) {
+      console.error("Conversations load failed:", e);
+    }
+  }
+
+  // ── Director ─────────────────────────────────────────────────────────────────
+
+  async function sendDirector() {
+    const instruction = document.getElementById("dir-instruction").value.trim();
+    const password    = document.getElementById("dir-password").value;
+    const err         = document.getElementById("dir-error");
+
+    if (!instruction) { err.textContent = "Write an instruction first."; return; }
+    if (!password)     { err.textContent = "Enter director password."; return; }
+
+    const res = await fetch("/director", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({instruction, password})
+    });
+    const data = await res.json();
+
+    if (data.error) { err.textContent = data.error; return; }
+    err.textContent = "";
+    document.getElementById("dir-instruction").value = "";
+    alert("✅ Instruction sent! It will take effect on the next tick.");
+  }
+
+  // ── Onboarding ────────────────────────────────────────────────────────────────
+
+  async function login() {
+    const agent    = document.getElementById("agent-input").value.trim().toLowerCase();
+    const password = document.getElementById("password-input").value;
+    const err      = document.getElementById("login-error");
+    const btn      = document.getElementById("login-btn");
+
+    if (!agent || !password) { err.textContent = "Fill in both fields."; return; }
+    btn.disabled = true; btn.textContent = "..."; err.textContent = "";
+
+    const res  = await fetch("/login", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({agent, password}) });
+    const data = await res.json();
+
+    if (!data.success) { err.textContent = data.error; btn.disabled = false; btn.textContent = "Enter →"; return; }
+
+    agentName = data.agent;
+    document.getElementById("login-view").style.display = "none";
+    document.getElementById("chat-view").style.display = "block";
+    document.getElementById("ob-avatar").textContent = agentName[0].toUpperCase();
+    document.getElementById("ob-name").textContent = agentName[0].toUpperCase() + agentName.slice(1);
+
+    const start = await (await fetch("/onboard/start")).json();
+    totalQ = start.total_questions;
+    addMsg("ai", start.message);
+    setTimeout(() => setQ(start.question, 0, totalQ), 400);
+  }
+
+  async function obSend() {
+    const ta     = document.getElementById("ob-answer");
+    const answer = ta.value.trim();
+    if (!answer) return;
+
+    addMsg("human", answer);
+    ta.value = "";
+    document.getElementById("ob-send").disabled = true;
+    document.getElementById("ob-typing").style.display = "flex";
+
+    const res  = await fetch("/onboard/answer", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({answer}) });
+    const data = await res.json();
+
+    document.getElementById("ob-typing").style.display = "none";
+    document.getElementById("ob-send").disabled = false;
+    addMsg("ai", data.reaction);
+
+    if (data.done) {
+      setTimeout(() => {
+        document.getElementById("chat-view").style.display = "none";
+        document.getElementById("done-view").style.display = "block";
+        document.getElementById("done-msg").textContent = data.reaction;
+        document.getElementById("done-preview").textContent = data.new_prompt_preview;
+      }, 1500);
+    } else {
+      setTimeout(() => setQ(data.question, data.question_index, totalQ), 400);
+    }
+  }
+
+  function addMsg(type, text) {
+    const log = document.getElementById("ob-chat");
+    const msg = document.createElement("div");
+    msg.className = `msg ${type}`;
+    msg.innerHTML = `<div class="spk">${type === "ai" ? agentName + " (digital)" : "You"}</div><div class="bbl">${text}</div>`;
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+  }
+
+  function setQ(q, i, total) {
+    document.getElementById("ob-question").textContent = q;
+    document.getElementById("ob-progress").style.width = (i / total * 100) + "%";
+    document.getElementById("ob-answer").focus();
+  }
+
+  function obKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); obSend(); } }
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("password-input")?.addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+  });
+
+  // ── Auto refresh dashboard ──────────────────────────────────────────────────
+  loadDashboard();
+  setInterval(() => {
+    const active = document.querySelector(".page.active");
+    if (active?.id === "dashboard-page") loadDashboard();
+    if (active?.id === "conversations-page") loadConversations();
+  }, 30000); // refresh every 30 seconds
+</script>
+</body>
+</html>
