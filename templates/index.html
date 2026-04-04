@@ -95,7 +95,7 @@
     .bar-fill.t{background:var(--accent)}.bar-fill.f{background:var(--green)}.bar-fill.r{background:var(--pink)}.bar-fill.v{background:var(--red)}
     .bar-num{font-size:.68rem;color:var(--text);width:28px;text-align:right;flex-shrink:0;font-weight:bold}
 
-    /* ── CONVERSATIONS OVERLAY ── */
+    /*  CONVERSATIONS OVERLAY  */
     .overlay{position:fixed;top:52px;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;padding:0;display:none}
     .overlay.on{display:block}
 
@@ -304,7 +304,7 @@
 
 <!-- SIDE PANEL -->
 <div id="panel">
-  <div id="p-close" onclick="closePanel()">✕</div>
+  <div id="p-close" onclick="closePanel()"></div>
   <div id="p-av-wrap"></div>
   <div class="pan-name" id="p-name"></div>
   <div class="pan-mood" id="p-mood"></div>
@@ -318,7 +318,7 @@
 <div id="conv-modal">
   <div class="modal-header">
     <div><div class="modal-title" id="modal-title"></div><div class="modal-meta" id="modal-meta"></div></div>
-    <div class="modal-close" onclick="closeConvModal()">✕</div>
+    <div class="modal-close" onclick="closeConvModal()"></div>
   </div>
   <div class="modal-body" id="modal-body"></div>
 </div>
@@ -338,7 +338,7 @@
   <div class="pg-t">Director</div>
   <div class="pg-s">Shape what happens on the next tick</div>
   <div class="dir-box">
-    <div class="dir-t">◈ Send Instruction</div>
+    <div class="dir-t">* Send Instruction</div>
     <div class="drow"><input type="password" id="d-pw" placeholder="director password"/></div>
     <div class="drow"><textarea id="d-inst" style="height:70px" placeholder="What happens today?"></textarea></div>
     <div class="drow"><button class="btn" onclick="sendDir()">Send →</button></div>
@@ -382,21 +382,21 @@
     </div>
   </div>
   <div id="ob-done" style="display:none" class="done-box">
-    <div class="done-i">◈</div><div class="done-t">Calibration Complete</div>
+    <div class="done-i">*</div><div class="done-t">Calibration Complete</div>
     <div class="done-m" id="ob-dm"></div><div class="preview-b" id="ob-dp"></div>
     <button class="btn" onclick="location.reload()">Done</button>
   </div>
 </div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
+//  State 
 let sel=null,obAgent="",obTotal=0,cache={};
 let tx=100,ty=80,scale=1,dragging=false,lastX=0,lastY=0;
 let roomConvs={}, activeRoomTab=null;
 const C={joseph:"#8b7fff",evie:"#ff79c6",martin:"#50fa7b"};
 const gc=n=>C[n?.toLowerCase()]||"#8b7fff";
 
-// ── Drag & Zoom ────────────────────────────────────────────────────────────
+//  Drag & Zoom 
 const canvas=document.getElementById("map-canvas");
 const mapWorld=document.getElementById("map-world");
 function applyT(){mapWorld.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`}
@@ -407,13 +407,13 @@ canvas.addEventListener("wheel",e=>{e.preventDefault();const d=e.deltaY>0?-.1:.1
 function zoom(d){const cx=canvas.offsetWidth/2,cy=canvas.offsetHeight/2,prev=scale;scale=Math.max(.3,Math.min(3,scale+d));tx=cx-(cx-tx)*(scale/prev);ty=cy-(cy-ty)*(scale/prev);applyT()}
 function resetView(){tx=100;ty=80;scale=1;applyT()}
 
-// ── Avatar helper ──────────────────────────────────────────────────────────
+//  Avatar helper 
 function av(aid,size,style=""){
   const col=gc(aid),fs=Math.floor(size*.38);
   return `<img src="/static/${aid}.png" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;${style}" onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:bold\\'>${aid[0]?.toUpperCase()}</div>'"/>`;
 }
 
-// ── Nav ────────────────────────────────────────────────────────────────────
+//  Nav 
 function showMap(){
   document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
   document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
@@ -427,7 +427,7 @@ function showOverlay(n){
   if(n==="convs") initConvsTab();
 }
 
-// ── Load Map ───────────────────────────────────────────────────────────────
+//  Load Map 
 async function loadMap(){
   try{
     const d=await (await fetch("/api/status")).json();
@@ -484,7 +484,7 @@ function buildMap(wd,agents){
       html+=`</div>`;
     });
     html+=`</div>`;
-    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">💬${hasConv?'<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>':''}</div>`;
+    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">[ ]${hasConv?'<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>':''}</div>`;
     html+=`</div></div>`;
   });
   mapWorld.innerHTML=html;
@@ -493,7 +493,7 @@ function buildMap(wd,agents){
   if(sel) refreshPanel(sel,agents);
 }
 
-// ── Conv Modal (map tab — ONLY current tick's convs, top down) ────────────
+//  Conv Modal (map tab — ONLY current tick's convs, top down) 
 function openRoomConvModal(roomName){
   const rConvs=roomConvs[roomName]||[];
   const meta=cache?.simulation?.meta||{};
@@ -524,7 +524,7 @@ function openRoomConvModal(roomName){
     tickConvs.forEach((conv,ci)=>{
       if(ci>0) html+=`<div style="border-top:1px solid var(--border);margin:.8rem 0"></div>`;
       const parts=conv.participants||[];
-      html+=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:.7rem">⏰ ${conv.timestamp||"—"} · ${parts.join(", ")}</div>`;
+      html+=`<div style="font-size:.75rem;color:var(--muted);margin-bottom:.7rem"> ${conv.timestamp||"—"} · ${parts.join(", ")}</div>`;
       html+=buildConvHTML(conv,"topdown");
     });
     document.getElementById("modal-body").innerHTML=html;
@@ -539,7 +539,7 @@ function closeConvModal(){
   document.getElementById("conv-modal-overlay").classList.remove("show");
 }
 
-// ── Build conversation HTML (used in both modal and conv tab) ──────────────
+//  Build conversation HTML (used in both modal and conv tab) 
 function buildConvHTML(conv, direction="topdown"){
   const parts=conv.participants||[];
   const speakerIdx={};
@@ -618,7 +618,7 @@ function buildConvHTML(conv, direction="topdown"){
   return linesHTML+deltaHTML;
 }
 
-// ── Conversations Tab — Room-based ─────────────────────────────────────────
+//  Conversations Tab — Room-based 
 function initConvsTab(){
   const wd=cache?.world?.rooms||{};
   const roomNames=Object.values(wd).map(r=>r.name);
@@ -677,27 +677,33 @@ function renderRoomFeed(roomName){
     ...moveEvents.map(e=>({...e, itemType:"movement", tick:e.tick||0}))
   ].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
 
-  // Group by tick number (use time-based fallback for items without tick)
+  // Group by tick number
   const tickMap={};
   allItems.forEach(item=>{
-    const tickKey = item.tick||0;
-    if(!tickMap[tickKey]) tickMap[tickKey]={tick:tickKey, time:item.timestamp, items:[]};
-    tickMap[tickKey].items.push(item);
+    // Use tick if available and > 0, otherwise try to find matching tick from nearby convs
+    const tickKey = (item.tick && item.tick > 0) ? item.tick : item.tick || "?";
+    const key = String(tickKey);
+    if(!tickMap[key]) tickMap[key]={tick:tickKey, time:item.timestamp, items:[]};
+    tickMap[key].items.push(item);
   });
 
-  // Sort by tick number, newest first (highest tick at top)
+  // Sort by tick number, newest first. Unknown ticks go to bottom.
   const groups=Object.values(tickMap);
-  const reversed=[...groups].sort((a,b)=>b.tick-a.tick);
+  const reversed=[...groups].sort((a,b)=>{
+    if(a.tick==="?" && b.tick!=="?") return 1;
+    if(a.tick!=="?" && b.tick==="?") return -1;
+    return b.tick - a.tick;
+  });
 
   feed.innerHTML=reversed.map((group,gi)=>{
-    const tickNum=group.tick||gi+1;
+    const tickNum=group.tick && group.tick!=='?' ? group.tick : '?';
     const convItems=group.items.filter(i=>i.itemType==="conv");
     const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
 
     let html=`<div class="tick-block">`;
     html+=`<div class="tick-header">
       <div class="tick-label">Tick ${tickNum}</div>
-      <div class="tick-time">⏰ ${group.time}</div>
+      <div class="tick-time">${(()=>{const d=new Date(group.time);return isNaN(d)?group.time:d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})})()}</div>
       ${parts.length?`<div class="tick-participants">${parts.join(", ")}</div>`:""}
     </div>`;
 
@@ -731,7 +737,7 @@ function renderRoomFeed(roomName){
   }).join("");
 }
 
-// ── Side Panel ─────────────────────────────────────────────────────────────
+//  Side Panel 
 function pick(aid){
   if(sel===aid){closePanel();return;}
   sel=aid;refreshPanel(aid,cache?.agents||{});
@@ -778,7 +784,7 @@ function refreshPanel(aid,agents){
 
 function closePanel(){sel=null;document.getElementById("panel").classList.remove("open");buildMap(cache?.world||{},cache?.agents||{})}
 
-// ── Director ───────────────────────────────────────────────────────────────
+//  Director 
 function setDir(el){document.getElementById("d-inst").value=el.textContent}
 async function sendDir(){
   const inst=document.getElementById("d-inst").value.trim();
@@ -789,10 +795,10 @@ async function sendDir(){
   const d=await (await fetch("/director",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction:inst,password:pw})})).json();
   if(d.error){err.textContent=d.error;return;}
   err.textContent="";document.getElementById("d-inst").value="";
-  alert("✅ Sent! Takes effect next tick.");
+  alert(" Sent! Takes effect next tick.");
 }
 
-// ── Onboard ────────────────────────────────────────────────────────────────
+//  Onboard 
 async function obLogin(){
   const name=document.getElementById("ob-n").value.trim().toLowerCase();
   const pw=document.getElementById("ob-pw").value;
@@ -833,7 +839,7 @@ function addMsg(type,text){
 function setQ(q,i,t){document.getElementById("ob-q").textContent=q;document.getElementById("ob-prog").style.width=(i/t*100)+"%";document.getElementById("ob-ans").focus()}
 function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend()}}
 
-// ── Init ───────────────────────────────────────────────────────────────────
+//  Init 
 applyT();loadMap();
 setInterval(()=>{if(!document.querySelector(".overlay.on")) loadMap()},20000);
 </script>
