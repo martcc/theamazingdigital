@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>The Simulation</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    :root{
+      --bg:#0d0d14;--surface:#13131f;--surface2:#1a1a2e;--border:#2a2a45;
+      --accent:#8b7fff;--pink:#ff79c6;--text:#f0f0ff;--muted:#6060a0;
+      --green:#50fa7b;--red:#ff5555;--yellow:#f1fa8c;--cyan:#8be9fd;
+    }
+    html,body{width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:'Courier New',monospace;font-size:14px}
+
+    /* NAV */
+    #nav{
+      position:fixed;bottom:0;left:0;right:0;
+      background:rgba(13,13,20,.97);
+      border-top:1px solid var(--border);
+      display:flex;z-index:100;
+      padding-bottom:env(safe-area-inset-bottom);
+    }
+    .nav-btn{
+      flex:1;padding:.8rem .3rem .6rem;
+      display:flex;flex-direction:column;align-items:center;gap:.2rem;
+      color:var(--muted);cursor:pointer;transition:color .2s;
+      font-size:.55rem;letter-spacing:.08em;text-transform:uppercase;border:none;background:none;
+    }
+    .nav-btn.on{color:var(--accent)}
+    .nav-icon{font-size:.85rem;line-height:1}
+
+    /* PAGES */
+    .page{display:none;padding:1rem 1rem 5rem;min-height:100vh}
+    .page.on{display:block}
+
+    /* STATUS BAR */
+    .status-bar{
+      display:flex;gap:1rem;flex-wrap:wrap;
+      background:var(--surface);border:1px solid var(--border);
+      padding:.6rem .8rem;margin-bottom:1rem;font-size:.7rem;
+    }
+    .status-bar .lbl{color:var(--muted);margin-right:.2rem}
+    .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:3px;vertical-align:middle}
+    .dot.running{background:var(--green);animation:pulse 2s infinite}
+    .dot.sleeping{background:var(--yellow)}.dot.stopped{background:var(--red)}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    /* MAP PAGE */
+    .rooms-list{display:flex;flex-direction:column;gap:.8rem}
+    .room-card{
+      background:var(--surface);border:1px solid var(--border);
+      padding:1rem;
+    }
+    .room-card.occupied{border-color:#3a3a65}
+    .room-card-name{
+      font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:.4rem;
+    }
+    .room-card-desc{font-size:.78rem;color:var(--muted);line-height:1.5;margin-bottom:.8rem}
+    .room-agents{display:flex;flex-wrap:wrap;gap:.6rem;margin-bottom:.6rem}
+    .agent-chip{
+      display:flex;align-items:center;gap:.4rem;
+      background:var(--bg);border:1px solid var(--border);
+      padding:.3rem .6rem;cursor:pointer;
+    }
+    .agent-chip img{width:32px;height:32px;border-radius:50%;object-fit:cover}
+    .agent-chip-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:bold}
+    .agent-chip-name{font-size:.75rem;font-weight:bold}
+    .agent-chip-act{font-size:.65rem;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .room-conv-btn{
+      font-size:.65rem;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;
+      padding:.3rem .6rem;border:1px solid var(--border);background:none;cursor:pointer;
+      width:100%;text-align:left;transition:all .2s;position:relative;
+    }
+    .room-conv-btn.has-conv{border-color:var(--accent);color:var(--accent)}
+    .room-conv-dot{
+      width:8px;height:8px;border-radius:50%;background:var(--accent);
+      display:inline-block;margin-right:.4rem;
+      box-shadow:0 0 6px var(--accent);
+    }
+
+    /* AGENT DETAIL SHEET */
+    #agent-sheet{
+      position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;
+      align-items:flex-end;
+    }
+    #agent-sheet.open{display:flex}
+    #agent-sheet-inner{
+      width:100%;background:var(--surface);
+      border-top:1px solid var(--border);
+      padding:1.2rem 1rem 2rem;
+      max-height:80vh;overflow-y:auto;
+    }
+    .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto .8rem}
+    .sheet-close{float:right;color:var(--muted);font-size:1rem;cursor:pointer;line-height:1}
+    .sheet-av{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;clear:both}
+    .sheet-av img,.sheet-av-letter{width:56px;height:56px;border-radius:50%;object-fit:cover}
+    .sheet-av-letter{display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:bold}
+    .sheet-name{font-size:1rem;font-weight:bold}
+    .sheet-mood{font-size:.72rem;padding:.2rem .5rem;border:1px solid var(--border);display:inline-block;margin-top:.2rem}
+    .sheet-think{background:var(--bg);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.78rem;color:#c0c0e0;line-height:1.5;font-style:italic;margin:.8rem 0}
+    .sheet-sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:.8rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:.3rem}
+    .rel-item{margin-bottom:.8rem}
+    .rel-name{font-size:.78rem;font-weight:bold;margin-bottom:.3rem}
+    .bar-row{display:flex;gap:.4rem;align-items:center;margin-bottom:.25rem}
+    .bar-lbl{font-size:.6rem;color:var(--muted);width:54px;flex-shrink:0}
+    .bar-track{flex:1;height:5px;background:#1a1a30;border-radius:3px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;border-radius:3px;transition:width .5s}
+    .bar-fill.t{background:var(--accent)}.bar-fill.f{background:var(--green)}.bar-fill.r{background:var(--pink)}.bar-fill.v{background:var(--red)}
+    .bar-num{font-size:.65rem;width:26px;text-align:right;flex-shrink:0;font-weight:bold}
+
+    /* CONV MODAL */
+    #conv-sheet{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:flex-end}
+    #conv-sheet.open{display:flex}
+    #conv-sheet-inner{width:100%;background:var(--surface);border-top:1px solid var(--border);padding:1rem 1rem 2rem;max-height:85vh;overflow-y:auto}
+    .conv-sheet-title{font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:.2rem}
+    .conv-sheet-meta{font-size:.65rem;color:var(--muted);margin-bottom:.8rem}
+
+    /* MESSAGES */
+    .msg-row{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.7rem}
+    .msg-av{width:30px;height:30px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid transparent}
+    .msg-av-letter{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:bold;flex-shrink:0}
+    .msg-content{max-width:80%}
+    .msg-name{font-size:.6rem;font-weight:bold;margin-bottom:.15rem}
+    .msg-bubble{padding:.5rem .7rem;font-size:.82rem;line-height:1.5;border-radius:12px;border-bottom-left-radius:3px;word-wrap:break-word}
+
+    /* CONVERSATIONS PAGE */
+    .room-tabs{display:flex;gap:.4rem;overflow-x:auto;margin-bottom:1rem;padding-bottom:.3rem}
+    .room-tabs::-webkit-scrollbar{height:2px}.room-tabs::-webkit-scrollbar-thumb{background:var(--border)}
+    .room-tab{
+      white-space:nowrap;padding:.4rem .8rem;font-size:.65rem;
+      border:1px solid var(--border);color:var(--muted);cursor:pointer;flex-shrink:0;
+    }
+    .room-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(139,127,255,.08)}
+    .tick-block{background:var(--surface);border:1px solid var(--border);margin-bottom:1rem;overflow:hidden}
+    .tick-header{background:var(--surface2);padding:.6rem .8rem;font-size:.65rem;display:flex;gap:.8rem;flex-wrap:wrap;border-bottom:1px solid var(--border)}
+    .tick-lbl{color:var(--accent);font-weight:bold;letter-spacing:.1em;text-transform:uppercase}
+    .tick-time{color:var(--muted)}.tick-parts{color:var(--muted)}
+    .tick-conv{padding:.8rem;border-bottom:1px solid var(--border)}
+    .tick-conv:last-child{border-bottom:none}
+    .conv-people{display:flex;gap:.4rem;margin-bottom:.6rem;flex-wrap:wrap}
+    .conv-person-chip{display:flex;align-items:center;gap:.25rem;font-size:.68rem;padding:.15rem .4rem;border:1px solid var(--border);background:var(--bg)}
+    .movement-event{font-size:.78rem;color:var(--yellow);text-align:center;padding:.5rem .8rem;border-bottom:1px solid var(--border);font-style:italic}
+    .messages-reversed{display:flex;flex-direction:column-reverse;gap:.5rem}
+
+    /* DELTA BOX */
+    .delta-box{margin-top:.8rem;background:var(--bg);border:1px solid var(--border);padding:.7rem .8rem}
+    .delta-box-title{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.5rem}
+    .delta-person-section{margin-bottom:.6rem}
+    .delta-person-label{font-size:.75rem;font-weight:bold;margin-bottom:.3rem}
+    .delta-pair-label{font-size:.68rem;color:var(--muted);margin:.2rem 0 .15rem}
+    .delta-stat-row{display:flex;justify-content:space-between;font-size:.75rem;padding:.12rem 0}
+    .delta-stat-label{color:var(--muted)}.delta-stat-val{font-weight:bold}
+    .val-pos{color:var(--green)}.val-neg{color:var(--red)}.val-zero{color:#3a3a5a}
+
+    /* DIRECTOR PAGE */
+    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1rem;margin-bottom:1rem}
+    .dir-title{font-size:.65rem;color:var(--accent);letter-spacing:.15em;text-transform:uppercase;margin-bottom:.7rem}
+    .dir-row{display:flex;gap:.4rem;margin-bottom:.4rem}
+    .dir-row input,.dir-row textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.82rem;outline:none;border-radius:0}
+    .dir-row input:focus,.dir-row textarea:focus{border-color:var(--accent)}
+    .dir-examples{background:var(--surface);border:1px solid var(--border);padding:.8rem}
+    .dir-ex-t{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}
+    .dir-ex{font-size:.78rem;color:#5050a0;padding:.25rem 0;cursor:pointer;border-bottom:1px solid var(--border)}
+    .dir-ex:last-child{border-bottom:none}
+    .dir-ex:active{color:var(--accent)}
+
+    /* ONBOARD PAGE */
+    .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:300px}
+    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.7rem;font-family:inherit;font-size:.88rem;outline:none}
+    .ob-form input:focus{border-color:var(--accent)}
+    .prog{width:100%;height:2px;background:var(--border);margin-bottom:.8rem}
+    .prog-f{height:100%;background:var(--accent);transition:width .4s}
+    .chatlog{max-height:260px;overflow-y:auto;margin-bottom:.8rem;display:flex;flex-direction:column;gap:.5rem}
+    .msg2{display:flex;flex-direction:column;gap:.1rem}
+    .msg2.ai .sp{font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+    .msg2.hu .sp{font-size:.6rem;color:var(--muted);text-transform:uppercase;text-align:right}
+    .msg2.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.82rem;line-height:1.5}
+    .msg2.hu .bb{background:var(--surface2);border-right:2px solid var(--border);padding:.5rem .7rem;font-size:.82rem;line-height:1.5;text-align:right}
+    .qbox{background:var(--surface);border:1px solid var(--border);padding:.7rem;font-size:.82rem;line-height:1.5;color:#c0c0e0;margin-bottom:.7rem}
+    .in-row{display:flex;gap:.4rem}
+    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.82rem;resize:none;height:60px;outline:none}
+    .in-row textarea:focus{border-color:var(--accent)}
+    .typing{display:none;gap:4px;align-items:center;padding:.3rem 0}
+    .typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite}
+    .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+    .done-box{text-align:center;padding:1.5rem 0}
+    .done-t{font-size:1rem;color:var(--accent);margin-bottom:.6rem}
+    .done-m{color:var(--muted);line-height:1.6;margin-bottom:.8rem;font-size:.82rem}
+    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;margin-bottom:.8rem}
+
+    .btn{background:var(--accent);border:none;color:#fff;padding:.6rem 1.1rem;font-family:inherit;font-size:.82rem;cursor:pointer;width:100%;margin-top:.3rem}
+    .err{color:var(--red);font-size:.72rem;min-height:.9rem}
+    .empty{color:var(--muted);font-size:.8rem;padding:1rem 0}
+    .pg-t{font-size:1rem;font-weight:bold;margin-bottom:.2rem}
+    .pg-s{font-size:.72rem;color:var(--muted);margin-bottom:1rem}
+  </style>
+</head>
+<body>
+
+<!-- MAP PAGE -->
+<div class="page on" id="map-page">
+  <div class="status-bar">
+    <div><span class="lbl">Status</span><span id="m-status"><span class="dot stopped"></span>—</span></div>
+    <div><span class="lbl">Tick</span><span id="m-tick">—</span></div>
+    <div><span class="lbl">Updated</span><span id="m-upd">—</span></div>
+  </div>
+  <div id="rooms-list"><div class="empty">Loading...</div></div>
+</div>
+
+<!-- CONVERSATIONS PAGE -->
+<div class="page" id="convs-page">
+  <div class="pg-t">Conversations</div>
+  <div class="pg-s">Select a room</div>
+  <div class="room-tabs" id="room-tabs"></div>
+  <div id="conv-feed"><div class="empty">Select a room above</div></div>
+</div>
+
+<!-- DIRECTOR PAGE -->
+<div class="page" id="dir-page">
+  <div class="pg-t">Director</div>
+  <div class="pg-s">Shape what happens next tick</div>
+  <div class="dir-box">
+    <div class="dir-title">Send Instruction</div>
+    <div class="dir-row"><input type="password" id="d-pw" placeholder="director password"/></div>
+    <div class="dir-row"><textarea id="d-inst" style="height:70px" placeholder="What happens today?"></textarea></div>
+    <button class="btn" onclick="sendDir()">Send</button>
+    <div class="err" id="d-err" style="margin-top:.4rem"></div>
+  </div>
+  <div class="dir-examples">
+    <div class="dir-ex-t">Tap to use</div>
+    <div class="dir-ex" onclick="setDir(this)">Joseph gets some bad news about his company</div>
+    <div class="dir-ex" onclick="setDir(this)">Evie is in an unusually great mood today</div>
+    <div class="dir-ex" onclick="setDir(this)">There is a thunderstorm keeping everyone inside</div>
+    <div class="dir-ex" onclick="setDir(this)">A mysterious package arrives at the door</div>
+    <div class="dir-ex" onclick="setDir(this)">Someone had a nightmare and is unsettled today</div>
+  </div>
+</div>
+
+<!-- ONBOARD PAGE -->
+<div class="page" id="ob-page">
+  <div id="ob-login">
+    <div class="pg-t">Onboarding</div>
+    <div class="pg-s">Calibrate your digital self</div>
+    <div class="ob-form">
+      <input type="text" id="ob-n" placeholder="your name" autocomplete="off"/>
+      <input type="password" id="ob-pw" placeholder="password"/>
+      <button class="btn" id="ob-btn" onclick="obLogin()">Enter</button>
+      <div class="err" id="ob-err"></div>
+    </div>
+  </div>
+  <div id="ob-chat" style="display:none">
+    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
+      <div id="ob-av2"></div>
+      <div><div style="font-weight:bold;font-size:.9rem" id="ob-agn"></div><div style="font-size:.62rem;color:var(--muted)">digital self</div></div>
+    </div>
+    <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
+    <div class="chatlog" id="ob-msgs"></div>
+    <div class="typing" id="ob-typing"><span></span><span></span><span></span></div>
+    <div class="qbox" id="ob-q"></div>
+    <div class="in-row">
+      <textarea id="ob-ans" placeholder="Answer honestly..." onkeydown="obKey(event)"></textarea>
+      <button class="btn" style="width:auto;padding:.5rem .8rem;margin:0" id="ob-send" onclick="obSend()">-></button>
+    </div>
+  </div>
+  <div id="ob-done" style="display:none" class="done-box">
+    <div class="done-t">Calibration Complete</div>
+    <div class="done-m" id="ob-dm"></div>
+    <div class="preview-b" id="ob-dp"></div>
+    <button class="btn" onclick="location.reload()">Done</button>
+  </div>
+</div>
+
+<!-- AGENT DETAIL SHEET -->
+<div id="agent-sheet" onclick="closeSheet()">
+  <div id="agent-sheet-inner" onclick="e=>e.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-close" onclick="closeSheet()">x</div>
+    <div class="sheet-av" id="s-av"></div>
+    <div class="sheet-think" id="s-think"></div>
+    <div class="sheet-sec">Relationships</div>
+    <div id="s-rels"></div>
+  </div>
+</div>
+
+<!-- CONV SHEET -->
+<div id="conv-sheet" onclick="closeConvSheet()">
+  <div id="conv-sheet-inner" onclick="e=>e.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:.8rem">
+      <div>
+        <div class="conv-sheet-title" id="cs-title"></div>
+        <div class="conv-sheet-meta" id="cs-meta"></div>
+      </div>
+      <div style="color:var(--muted);cursor:pointer;font-size:1rem" onclick="closeConvSheet()">x</div>
+    </div>
+    <div id="cs-body"></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <button class="nav-btn on" id="n-map" onclick="showPage('map')">
+    <div class="nav-icon">M</div>
+    <div>Map</div>
+  </button>
+  <button class="nav-btn" id="n-convs" onclick="showPage('convs')">
+    <div class="nav-icon">C</div>
+    <div>Convs</div>
+  </button>
+  <button class="nav-btn" id="n-dir" onclick="showPage('dir')">
+    <div class="nav-icon">D</div>
+    <div>Director</div>
+  </button>
+  <button class="nav-btn" id="n-ob" onclick="showPage('ob')">
+    <div class="nav-icon">O</div>
+    <div>Onboard</div>
+  </button>
+</div>
+
+<script>
+let cache={}, roomConvs={}, activeTab=null, obAgent="", obTotal=0;
+const C={joseph:"#8b7fff",evie:"#ff79c6",martin:"#50fa7b"};
+const gc=n=>C[n?.toLowerCase()]||"#8b7fff";
+
+function av(aid,size){
+  const col=gc(aid),fs=Math.floor(size*.38);
+  return `<img src="/static/${aid}.png" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;border:2px solid ${col}" onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:bold\\'>${aid[0]?.toUpperCase()}</div>'"/>`;
+}
+
+// ── Nav ──────────────────────────────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("on"));
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("on"));
+  document.getElementById(name+"-page").classList.add("on");
+  document.getElementById("n-"+name).classList.add("on");
+  if(name==="map") loadMap();
+  if(name==="convs") initConvs();
+}
+
+// ── Load ─────────────────────────────────────────────────────────────────
+async function loadMap(){
+  try{
+    const d=await (await fetch("/api/status")).json();
+    cache=d;
+    const meta=d?.simulation?.meta||{};
+    const s=meta.status||"unknown";
+    const dc=s==="running"?"running":s==="sleeping"?"sleeping":"stopped";
+    document.getElementById("m-status").innerHTML=`<span class="dot ${dc}"></span>${s}`;
+    document.getElementById("m-tick").textContent=meta.tick_count||"—";
+    document.getElementById("m-upd").textContent=(meta.last_tick||"—").replace("2026-04-","").replace(/-/g,"/");
+
+    // Index convs by room
+    const convs=Object.values(d?.conversations||{});
+    roomConvs={};
+    convs.forEach(c=>{const loc=c.location||"?";if(!roomConvs[loc])roomConvs[loc]=[];roomConvs[loc].push(c)});
+
+    const wd=d?.world;
+    if(!wd?.rooms){document.getElementById("rooms-list").innerHTML='<div class="empty">Waiting for simulation...</div>';return;}
+    buildRooms(wd,d?.agents||{});
+  }catch(e){console.error(e)}
+}
+
+function buildRooms(wd,agents){
+  const rooms=wd.rooms, pos=wd.agent_positions||{};
+  const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
+  const currentTick=cache?.simulation?.meta?.tick_count||0;
+
+  document.getElementById("rooms-list").innerHTML=sorted.map(([rid,room])=>{
+    const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
+    const rConvs=roomConvs[room.name]||[];
+    const hasConv=rConvs.some(c=>c.tick===currentTick);
+
+    const agentsHTML=here.map(aid=>{
+      const ag=agents[aid]?.status||agents[aid]||{};
+      const col=gc(aid);
+      return `<div class="agent-chip" onclick="openSheet('${aid}')">
+        ${av(aid,32)}
+        <div>
+          <div class="agent-chip-name" style="color:${col}">${aid}</div>
+          <div class="agent-chip-act">${ag.activity||"..."}</div>
+        </div>
+      </div>`;
+    }).join("");
+
+    return `<div class="room-card ${here.length?"occupied":""}">
+      <div class="room-card-name">${room.name}</div>
+      <div class="room-card-desc">${room.description}</div>
+      ${here.length?`<div class="room-agents">${agentsHTML}</div>`:""}
+      <button class="room-conv-btn ${hasConv?"has-conv":""}" onclick="openRoomConvSheet('${room.name.replace(/'/g,"\\'")}')">
+        ${hasConv?'<span class="room-conv-dot"></span>':''}Conversations
+      </button>
+    </div>`;
+  }).join("");
+}
+
+// ── Agent Sheet ───────────────────────────────────────────────────────────
+function openSheet(aid){
+  const agents=cache?.agents||{};
+  const ag=agents[aid]?.status||agents[aid]||{};
+  const lt=agents[aid]?.relationships||{};
+  const col=gc(aid);
+
+  document.getElementById("s-av").innerHTML=`
+    ${av(aid,52)}
+    <div>
+      <div class="sheet-name" style="color:${col}">${aid}</div>
+      <div class="sheet-mood" style="border-color:${col};color:${col}">${ag.mood||"neutral"}</div>
+    </div>`;
+
+  document.getElementById("s-think").textContent=ag.thought?`"${ag.thought}"`:"...";
+
+  let rh="";
+  for(const [o,r] of Object.entries(lt)){
+    const ocol=gc(o);
+    rh+=`<div class="rel-item">
+      <div class="rel-name" style="color:${ocol}">${av(o,20)} ${o} <span style="font-size:.62rem;color:var(--muted);font-weight:normal">${r.status||r.current_status||"friend"}</span></div>`;
+    [{label:"trust",cls:"t",val:r.trust||0,bipolar:true},{label:"friends",cls:"f",val:r.friendship||0,bipolar:true},{label:"romantic",cls:"r",val:r.romantic||0,bipolar:false},{label:"rivalry",cls:"v",val:r.rivalry||0,bipolar:false}].forEach(b=>{
+      if(b.bipolar){
+        const pct=Math.abs(b.val)/50*50;
+        const isNeg=b.val<0;
+        rh+=`<div class="bar-row"><span class="bar-lbl">${b.label}</span>
+          <div class="bar-track"><div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#333;z-index:1"></div><div class="bar-fill ${b.cls}" style="position:absolute;${isNeg?`right:50%;width:${pct}%`:`left:50%;width:${pct}%`};top:0;height:100%"></div></div>
+          <span class="bar-num" style="color:${b.val>0?"var(--green)":b.val<0?"var(--red)":"var(--muted)"}">${b.val>0?"+":""}${b.val}</span></div>`;
+      } else {
+        rh+=`<div class="bar-row"><span class="bar-lbl">${b.label}</span><div class="bar-track"><div class="bar-fill ${b.cls}" style="width:${b.val/50*100}%"></div></div><span class="bar-num">${b.val}</span></div>`;
+      }
+    });
+    rh+=`</div>`;
+  }
+  document.getElementById("s-rels").innerHTML=rh||'<div class="empty">No relationships yet</div>';
+  document.getElementById("agent-sheet").classList.add("open");
+}
+function closeSheet(){document.getElementById("agent-sheet").classList.remove("open")}
+
+// ── Conv Sheet (current tick only) ────────────────────────────────────────
+function openRoomConvSheet(roomName){
+  const rConvs=roomConvs[roomName]||[];
+  const currentTick=cache?.simulation?.meta?.tick_count||0;
+  let tickConvs=rConvs.filter(c=>c.tick===currentTick);
+  if(!tickConvs.length) tickConvs=rConvs.slice(-1);
+
+  document.getElementById("cs-title").textContent=roomName;
+  document.getElementById("cs-meta").textContent=tickConvs.length?`${tickConvs.length} conversation${tickConvs.length>1?"s":""} this tick`:"No conversations this tick";
+
+  let html="";
+  if(!tickConvs.length){
+    html='<div class="empty">Nothing happened here this tick.</div>';
+  } else {
+    tickConvs.forEach((conv,ci)=>{
+      if(ci>0) html+=`<div style="border-top:1px solid var(--border);margin:.6rem 0"></div>`;
+      html+=`<div style="font-size:.65rem;color:var(--muted);margin-bottom:.5rem">${conv.timestamp||""} · ${(conv.participants||[]).join(", ")}</div>`;
+      html+=buildConvHTML(conv);
+    });
+  }
+
+  document.getElementById("cs-body").innerHTML=html;
+  document.getElementById("conv-sheet").classList.add("open");
+}
+function closeConvSheet(){document.getElementById("conv-sheet").classList.remove("open")}
+
+// ── Build Conv HTML ────────────────────────────────────────────────────────
+function buildConvHTML(conv,direction="topdown"){
+  const parts=conv.participants||[];
+  const speakerIdx={};parts.forEach((p,i)=>speakerIdx[p.toLowerCase()]=i);
+
+  const lineHTML=line=>{
+    let clean=line.replace(/^\[line\]\s*/i,"").replace(/^\[.*?\]\s*/,"").trim();
+    const colon=clean.indexOf(":");
+    if(colon<0) return "";
+    const speaker=clean.slice(0,colon).trim().toLowerCase();
+    const text=clean.slice(colon+1).trim();
+    if(!text) return "";
+    const col=gc(speaker);
+    return `<div class="msg-row">
+      ${av(speaker,30)}
+      <div class="msg-content">
+        <div class="msg-name" style="color:${col}">${speaker}</div>
+        <div class="msg-bubble" style="background:${col}18;border:1px solid ${col}40">${text}</div>
+      </div>
+    </div>`;
+  };
+
+  const lines=conv.lines||[];
+  let linesHTML=direction==="bottomup"
+    ?`<div class="messages-reversed">${[...lines].map(lineHTML).join("")}</div>`
+    :lines.map(lineHTML).join("");
+
+  // Deltas
+  const deltas=conv.deltas||{};
+  let dHTML=`<div class="delta-box"><div class="delta-box-title">Relationship Changes</div>`;
+  if(!Object.keys(deltas).length){
+    dHTML+=`<div style="font-size:.72rem;color:var(--muted);font-style:italic">No data yet</div>`;
+  } else {
+    for(const [agent,ad] of Object.entries(deltas)){
+      if(!ad||typeof ad!=="object") continue;
+      const acol=gc(agent);
+      dHTML+=`<div class="delta-person-section"><div class="delta-person-label" style="color:${acol}">${agent}</div>`;
+      for(const [other,rd] of Object.entries(ad)){
+        if(!rd||typeof rd!=="object") continue;
+        const ocol=gc(other);
+        dHTML+=`<div class="delta-pair-label">to <span style="color:${ocol}">${other}</span></div>`;
+        [{label:"trust",val:rd.trust||0},{label:"friendship",val:rd.friendship||0},{label:"romantic",val:rd.romantic||0},{label:"rivalry",val:rd.rivalry||0}].forEach(f=>{
+          const cls=f.val>0?"val-pos":f.val<0?"val-neg":"val-zero";
+          dHTML+=`<div class="delta-stat-row"><span class="delta-stat-label">${f.label}</span><span class="delta-stat-val ${cls}">${f.val>0?"+":""}${f.val}</span></div>`;
+        });
+      }
+      dHTML+=`</div>`;
+    }
+  }
+  dHTML+=`</div>`;
+  return linesHTML+dHTML;
+}
+
+// ── Conversations Page ────────────────────────────────────────────────────
+function initConvs(){
+  const wd=cache?.world?.rooms||{};
+  const roomNames=Object.values(wd).map(r=>r.name);
+  Object.keys(roomConvs).forEach(n=>{if(!roomNames.includes(n))roomNames.push(n)});
+
+  document.getElementById("room-tabs").innerHTML=roomNames.map(name=>{
+    const count=(roomConvs[name]||[]).length;
+    return `<div class="room-tab ${activeTab===name?"active":""}" onclick="selectTab('${name.replace(/'/g,"\\'")}')">
+      ${name}${count?` (${count})`:""}
+    </div>`;
+  }).join("");
+
+  if(!activeTab && roomNames.length) selectTab(roomNames[0]);
+  else if(activeTab) renderFeed(activeTab);
+}
+
+function selectTab(name){
+  activeTab=name;
+  document.querySelectorAll(".room-tab").forEach(t=>t.classList.toggle("active",t.textContent.trim().startsWith(name)));
+  renderFeed(name);
+}
+
+function renderFeed(roomName){
+  const convs=(roomConvs[roomName]||[]);
+  const allEvents=Object.values(cache?.events||{});
+  const moveEvents=allEvents.filter(e=>e.type==="movement"&&(e.to_room===roomName||e.from_room===roomName));
+  const feed=document.getElementById("conv-feed");
+
+  if(!convs.length&&!moveEvents.length){feed.innerHTML=`<div class="empty">Nothing here yet.</div>`;return;}
+
+  const allItems=[...convs.map(c=>({...c,itemType:"conv"})),...moveEvents.map(e=>({...e,itemType:"movement",tick:e.tick||0}))].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+  const tickMap={};
+  allItems.forEach(item=>{
+    const k=String((item.tick&&item.tick>0)?item.tick:"?");
+    if(!tickMap[k])tickMap[k]={tick:item.tick||"?",time:item.timestamp,items:[]};
+    tickMap[k].items.push(item);
+  });
+
+  const reversed=Object.values(tickMap).sort((a,b)=>{
+    if(a.tick==="?"&&b.tick!=="?") return 1;
+    if(a.tick!=="?"&&b.tick==="?") return -1;
+    return b.tick-a.tick;
+  });
+
+  feed.innerHTML=reversed.map(group=>{
+    const convItems=group.items.filter(i=>i.itemType==="conv");
+    const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
+    const tickNum=group.tick&&group.tick!=="?"?group.tick:"?";
+
+    let html=`<div class="tick-block"><div class="tick-header"><span class="tick-lbl">Tick ${tickNum}</span><span class="tick-time">${group.time}</span>${parts.length?`<span class="tick-parts">${parts.join(", ")}</span>`:""}</div>`;
+
+    group.items.forEach(item=>{
+      if(item.itemType==="movement"){
+        const isEntering=item.to_room===roomName;
+        const col=gc(item.agent);
+        html+=`<div class="movement-event">${av(item.agent,22)} <strong style="color:${col}">${item.agent}</strong> ${isEntering?"entered from":"left to"} <span style="color:var(--muted)">${isEntering?item.from_room:item.to_room}</span></div>`;
+      } else {
+        const cparts=item.participants||[];
+        html+=`<div class="tick-conv"><div class="conv-people">${cparts.map(p=>`<div class="conv-person-chip">${av(p,18)} ${p}</div>`).join("")}</div>`;
+        html+=buildConvHTML(item,"bottomup");
+        html+=`</div>`;
+      }
+    });
+
+    html+=`</div>`;
+    return html;
+  }).join("");
+}
+
+// ── Director ──────────────────────────────────────────────────────────────
+function setDir(el){document.getElementById("d-inst").value=el.textContent.trim()}
+async function sendDir(){
+  const inst=document.getElementById("d-inst").value.trim();
+  const pw=document.getElementById("d-pw").value;
+  const err=document.getElementById("d-err");
+  if(!inst){err.textContent="Write something.";return;}
+  if(!pw){err.textContent="Enter password.";return;}
+  const d=await (await fetch("/director",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({instruction:inst,password:pw})})).json();
+  if(d.error){err.textContent=d.error;return;}
+  err.textContent="";document.getElementById("d-inst").value="";
+  alert("Sent! Takes effect next tick.");
+}
+
+// ── Onboard ───────────────────────────────────────────────────────────────
+async function obLogin(){
+  const name=document.getElementById("ob-n").value.trim().toLowerCase();
+  const pw=document.getElementById("ob-pw").value;
+  const err=document.getElementById("ob-err");
+  const btn=document.getElementById("ob-btn");
+  if(!name||!pw){err.textContent="Fill both fields.";return;}
+  btn.disabled=true;btn.textContent="...";err.textContent="";
+  const d=await (await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:name,password:pw})})).json();
+  if(!d.success){err.textContent=d.error;btn.disabled=false;btn.textContent="Enter";return;}
+  obAgent=d.agent;
+  document.getElementById("ob-login").style.display="none";
+  document.getElementById("ob-chat").style.display="block";
+  const col=gc(obAgent);
+  document.getElementById("ob-av2").innerHTML=av(obAgent,38);
+  document.getElementById("ob-agn").textContent=obAgent[0].toUpperCase()+obAgent.slice(1);
+  const s=await (await fetch("/onboard/start")).json();
+  obTotal=s.total_questions;addMsg("ai",s.message);setTimeout(()=>setQ(s.question,0,obTotal),400);
+}
+async function obSend(){
+  const ta=document.getElementById("ob-ans"),ans=ta.value.trim();
+  if(!ans)return;
+  addMsg("hu",ans);ta.value="";
+  document.getElementById("ob-send").disabled=true;
+  document.getElementById("ob-typing").style.display="flex";
+  const d=await (await fetch("/onboard/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:ans})})).json();
+  document.getElementById("ob-typing").style.display="none";
+  document.getElementById("ob-send").disabled=false;
+  addMsg("ai",d.reaction);
+  if(d.done){
+    setTimeout(()=>{
+      document.getElementById("ob-chat").style.display="none";
+      document.getElementById("ob-done").style.display="block";
+      document.getElementById("ob-dm").textContent=d.reaction;
+      document.getElementById("ob-dp").textContent=d.new_prompt_preview;
+    },1500);
+  } else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
+}
+function addMsg(type,text){
+  const log=document.getElementById("ob-msgs"),m=document.createElement("div");
+  m.className=`msg2 ${type}`;
+  m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
+  log.appendChild(m);log.scrollTop=log.scrollHeight;
+}
+function setQ(q,i,t){document.getElementById("ob-q").textContent=q;document.getElementById("ob-prog").style.width=(i/t*100)+"%";document.getElementById("ob-ans").focus()}
+function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend()}}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+loadMap();
+setInterval(()=>{
+  const active=document.querySelector(".page.on");
+  if(active?.id==="map-page") loadMap();
+  if(active?.id==="convs-page"){loadMap().then(()=>activeTab&&renderFeed(activeTab));}
+},20000);
+</script>
+</body>
+</html>
