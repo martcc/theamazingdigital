@@ -376,11 +376,15 @@ function buildRooms(wd,agents){
     const agentsHTML=here.map(aid=>{
       const ag=agents[aid]?.status||agents[aid]||{};
       const col=gc(aid);
+      const isSleeping=ag.sleeping===true;
       return `<div class="agent-chip" onclick="openSheet('${aid}')">
-        ${av(aid,32)}
+        <div style="position:relative;display:inline-block">
+          ${av(aid,32)}
+          ${isSleeping?'<div style="position:absolute;top:-3px;right:-3px;background:#1a1a3a;border:1px solid #4444aa;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:.55rem;color:#8888ff;font-weight:bold">z</div>':""}
+        </div>
         <div>
-          <div class="agent-chip-name" style="color:${col}">${aid}</div>
-          <div class="agent-chip-act">${ag.activity||"..."}</div>
+          <div class="agent-chip-name" style="color:${isSleeping?"#6666aa":col}">${aid}${isSleeping?" · asleep":""}</div>
+          <div class="agent-chip-act">${isSleeping?"sleeping...":(ag.activity||"...")}</div>
         </div>
       </div>`;
     }).join("");
@@ -403,11 +407,12 @@ function openSheet(aid){
   const lt=agents[aid]?.relationships||{};
   const col=gc(aid);
 
+  const isSleeping2=ag.sleeping===true;
   document.getElementById("s-av").innerHTML=`
     ${av(aid,52)}
     <div>
-      <div class="sheet-name" style="color:${col}">${aid}</div>
-      <div class="sheet-mood" style="border-color:${col};color:${col}">${ag.mood||"neutral"}</div>
+      <div class="sheet-name" style="color:${isSleeping2?"#8888ff":col}">${aid}</div>
+      <div class="sheet-mood" style="border-color:${isSleeping2?"#4444aa":col};color:${isSleeping2?"#8888ff":col}">${isSleeping2?"asleep":(ag.mood||"neutral")}</div>
     </div>`;
 
   document.getElementById("s-think").textContent=ag.thought?`"${ag.thought}"`:"...";
