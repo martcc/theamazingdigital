@@ -673,25 +673,25 @@ function renderRoomFeed(roomName){
   // Merge convs and movement events into one timeline
   const allItems=[
     ...convs.map(c=>({...c, itemType:"conv"})),
-    ...moveEvents.map(e=>({...e, itemType:"movement"}))
+    ...moveEvents.map(e=>({...e, itemType:"movement", tick:e.tick||0}))
   ].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
 
-  // Group into tick blocks (20 min windows)
-  const groups=[];
-  let currentGroup=null;
+  // Group by tick number (use time-based fallback for items without tick)
+  const tickMap={};
   allItems.forEach(item=>{
-    const t=new Date(item.timestamp);
-    if(!currentGroup||(t-new Date(currentGroup.time))>20*60*1000){
-      currentGroup={time:item.timestamp,items:[]};
-      groups.push(currentGroup);
-    }
-    currentGroup.items.push(item);
+    const tickKey = item.tick||0;
+    if(!tickMap[tickKey]) tickMap[tickKey]={tick:tickKey, time:item.timestamp, items:[]};
+    tickMap[tickKey].items.push(item);
   });
 
-  const reversed=[...groups].reverse();
+  // Sort by tick number, newest first (highest tick at top)
+  const groups=Object.values(tickMap);
+  const reversed=[...groups].sort((a,b)=>b.tick-a.tick);
 
   feed.innerHTML=reversed.map((group,gi)=>{
-    const tickNum=reversed.length-gi;
+    // Find the tick number from the conversations in this group
+    const convItems=group.items.filter(i=>i.itemType==="conv");
+    const tickNum=group.tick||gi+1;
     const convItems=group.items.filter(i=>i.itemType==="conv");
     const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
 
