@@ -191,6 +191,12 @@
     .done-m{color:var(--muted);line-height:1.6;margin-bottom:.8rem;font-size:.82rem}
     .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;margin-bottom:.8rem}
 
+    .sum-block{background:var(--surface);border:1px solid var(--border);padding:1rem;margin-bottom:.8rem;position:relative}
+    .sum-block.cur{border-color:var(--accent)}
+    .sum-hour{font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:.15rem}
+    .sum-date{font-size:.62rem;color:var(--muted);margin-bottom:.6rem}
+    .sum-text{font-size:.82rem;line-height:1.7;color:var(--text)}
+    .sum-live{position:absolute;top:.7rem;right:.7rem;font-size:.58rem;color:var(--green);letter-spacing:.1em;text-transform:uppercase}
     .btn{background:var(--accent);border:none;color:#fff;padding:.6rem 1.1rem;font-family:inherit;font-size:.82rem;cursor:pointer;width:100%;margin-top:.3rem}
     .err{color:var(--red);font-size:.72rem;min-height:.9rem}
     .empty{color:var(--muted);font-size:.8rem;padding:1rem 0}
@@ -273,6 +279,13 @@
   </div>
 </div>
 
+<!-- SUMMARY PAGE -->
+<div class="page" id="summary-page">
+  <div class="pg-t">Daily Summary</div>
+  <div class="pg-s">Hourly summaries of what happened today</div>
+  <div id="mob-summary-feed"><div class="empty">No summaries yet...</div></div>
+</div>
+
 <!-- AGENT DETAIL SHEET -->
 <div id="agent-sheet" onclick="closeSheet()">
   <div id="agent-sheet-inner" onclick="e=>e.stopPropagation()">
@@ -318,6 +331,10 @@
     <div class="nav-icon">O</div>
     <div>Onboard</div>
   </button>
+  <button class="nav-btn" id="n-summary" onclick="showPage('summary')">
+    <div class="nav-icon">S</div>
+    <div>Summary</div>
+  </button>
 </div>
 
 <script>
@@ -338,6 +355,7 @@ function showPage(name){
   document.getElementById("n-"+name).classList.add("on");
   if(name==="map") loadMap();
   if(name==="convs") initConvs();
+  if(name==="summary") loadMobSummary();
 }
 
 // ── Load ─────────────────────────────────────────────────────────────────
@@ -652,6 +670,26 @@ function addMsg(type,text){
 }
 function setQ(q,i,t){document.getElementById("ob-q").textContent=q;document.getElementById("ob-prog").style.width=(i/t*100)+"%";document.getElementById("ob-ans").focus()}
 function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend()}}
+
+// ── Summary ──────────────────────────────────────────────────────────────────
+async function loadMobSummary(){
+  try{
+    const d=await (await fetch("/api/status")).json();
+    const summaries=d?.summaries||{};
+    const feed=document.getElementById("mob-summary-feed");
+    if(!Object.keys(summaries).length){feed.innerHTML='<div class="empty">No summaries yet.</div>';return;}
+    const sorted=Object.entries(summaries).sort((a,b)=>b[0].localeCompare(a[0]));
+    feed.innerHTML=sorted.map(([key,s])=>{
+      const isCur=!s.finalized;
+      return `<div class="sum-block ${isCur?"cur":""}">
+        ${isCur?'<div class="sum-live">live</div>':""}
+        <div class="sum-hour">${s.hour||key}</div>
+        <div class="sum-date">${s.date||""} · Tick ${s.tick||"?"}</div>
+        <div class="sum-text">${s.summary||"..."}</div>
+      </div>`;
+    }).join("");
+  }catch(e){console.error(e)}
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────
 loadMap();
