@@ -8,7 +8,7 @@
     *{margin:0;padding:0;box-sizing:border-box}
     :root{
       --bg:#0d0d14;--surface:#13131f;--surface2:#1a1a2e;--border:#2a2a45;
-      --accent:#8b7fff;--pink:#ff79c6;--text:#f0f0ff;--muted:#6060a0;
+      --accent:#8b7fff;--pink:#ff79c6;--text:#f0f0ff;--muted:#7070b0;
       --green:#50fa7b;--red:#ff5555;--yellow:#f1fa8c;--cyan:#8be9fd;--orange:#ffb86c;
     }
     html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',monospace}
@@ -43,58 +43,28 @@
     .room-objects{margin-bottom:1rem;border-top:1px solid var(--border);padding-top:.7rem}
     .obj{font-size:.68rem;color:#3a3a58;padding:.18rem 0}.obj-name{color:#4a4a70}
     .connector-line{position:absolute;background:var(--border);z-index:0}.connector-line.h{height:1px}
-
-    /* ROOM FOOTER — tokens + conv icon */
     .room-footer{display:flex;align-items:center;justify-content:space-between;margin-top:.8rem}
     .tokens{display:flex;flex-wrap:wrap;gap:.8rem;position:relative;z-index:2}
-
-    /* CONV ROOM ICON */
-    .conv-room-icon{
-      width:44px;height:44px;border-radius:50%;
-      background:var(--surface2);border:1px solid var(--border);
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;transition:all .2s;flex-shrink:0;
-      font-size:1.1rem;position:relative;
-    }
+    .conv-room-icon{width:44px;height:44px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;flex-shrink:0;font-size:1.1rem;position:relative}
     .conv-room-icon:hover{border-color:var(--accent);box-shadow:0 0 12px rgba(139,127,255,.3)}
     .conv-room-icon.has-conv{border-color:var(--accent);background:rgba(139,127,255,.1);box-shadow:0 0 16px rgba(139,127,255,.2)}
-    .conv-room-icon .badge{
-      position:absolute;top:-4px;right:-4px;
-      width:16px;height:16px;border-radius:50%;
-      background:var(--accent);font-size:.55rem;
-      display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:bold;
-    }
-
-    /* TOKENS */
+    .conv-room-icon .badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--accent);font-size:.55rem;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold}
     .token{cursor:pointer;transition:transform .15s,filter .15s;position:relative}
     .token:hover{transform:scale(1.08);filter:brightness(1.15)}
     .tok-av{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid transparent;display:block;transition:border-color .2s,box-shadow .2s}
     .tok-letter{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:bold;border:3px solid transparent}
     .tok-name-badge{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);background:var(--bg);border:1px solid var(--border);padding:.1rem .4rem;font-size:.6rem;white-space:nowrap;color:var(--text);letter-spacing:.05em}
 
-    /* CONVERSATION MODAL — centered */
-    #conv-modal{
-      position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
-      width:580px;max-width:92vw;max-height:80vh;
-      background:var(--surface);border:1px solid var(--border);
-      box-shadow:0 20px 60px rgba(0,0,0,.7);
-      z-index:500;display:none;flex-direction:column;
-      border-radius:2px;
-    }
+    /* CONV MODAL */
+    #conv-modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;max-width:92vw;max-height:82vh;background:var(--surface);border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.7);z-index:500;display:none;flex-direction:column}
     #conv-modal.show{display:flex}
     #conv-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:499;display:none}
     #conv-modal-overlay.show{display:block}
-    .modal-header{
-      display:flex;justify-content:space-between;align-items:center;
-      padding:.8rem 1.2rem;border-bottom:1px solid var(--border);
-      background:var(--surface2);flex-shrink:0;
-    }
-    .modal-title{font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
-    .modal-meta{font-size:.62rem;color:var(--muted)}
-    .modal-close{color:var(--muted);cursor:pointer;font-size:1.1rem;line-height:1}
-    .modal-close:hover{color:var(--text)}
-    .modal-body{padding:1.2rem;overflow-y:auto;flex:1}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:.8rem 1.2rem;border-bottom:1px solid var(--border);background:var(--surface2);flex-shrink:0}
+    .modal-title{font-size:.85rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+    .modal-meta{font-size:.68rem;color:var(--muted);margin-top:.15rem}
+    .modal-close{color:var(--muted);cursor:pointer;font-size:1.1rem}.modal-close:hover{color:var(--text)}
+    .modal-body{padding:1.2rem;overflow-y:auto;flex:1;display:flex;flex-direction:column}
 
     /* IMESSAGE BUBBLES */
     .msg-row{display:flex;align-items:flex-end;gap:.6rem;margin-bottom:.8rem}
@@ -103,31 +73,10 @@
     .msg-av-letter{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:bold;flex-shrink:0}
     .msg-content{display:flex;flex-direction:column;max-width:72%}
     .msg-row.right .msg-content{align-items:flex-end}
-    .msg-name{font-size:.6rem;color:var(--muted);margin-bottom:.2rem;padding:0 .3rem}
-    .msg-bubble{
-      padding:.7rem 1rem;
-      font-size:.9rem;line-height:1.55;
-      border-radius:18px;word-wrap:break-word;
-    }
-    .msg-row:not(.right) .msg-bubble{
-      background:var(--surface2);border:1px solid var(--border);
-      border-bottom-left-radius:4px;color:var(--text);
-    }
-    .msg-row.right .msg-bubble{
-      border-bottom-right-radius:4px;color:#fff;
-    }
-
-    /* RELATIONSHIP DELTA BOX */
-    .delta-section{
-      margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);
-    }
-    .delta-title{font-size:.62rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin-bottom:.7rem}
-    .delta-agent{margin-bottom:.8rem}
-    .delta-agent-name{font-size:.72rem;font-weight:bold;margin-bottom:.4rem}
-    .delta-row{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;padding:.2rem 0}
-    .delta-label{color:var(--muted)}
-    .delta-val{font-weight:bold}
-    .delta-pos{color:var(--green)}.delta-neg{color:var(--red)}.delta-zero{color:var(--muted)}
+    .msg-name{font-size:.65rem;color:var(--muted);margin-bottom:.2rem;padding:0 .3rem}
+    .msg-bubble{padding:.7rem 1rem;font-size:.95rem;line-height:1.6;border-radius:18px;word-wrap:break-word}
+    .msg-row:not(.right) .msg-bubble{background:var(--surface2);border:1px solid var(--border);border-bottom-left-radius:4px;color:var(--text)}
+    .msg-row.right .msg-bubble{border-bottom-right-radius:4px;color:#fff}
 
     /* SIDE PANEL */
     #panel{position:fixed;right:0;top:52px;bottom:0;width:320px;background:var(--surface);border-left:1px solid var(--border);padding:1.5rem;overflow-y:auto;transform:translateX(100%);transition:transform .3s ease;z-index:250}
@@ -137,70 +86,191 @@
     .pan-av{width:70px;height:70px;border-radius:50%;object-fit:cover;margin-bottom:.9rem;border:3px solid var(--border)}
     .pan-letter{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;margin-bottom:.9rem}
     .pan-name{font-size:1.1rem;font-weight:bold;margin-bottom:.2rem}
-    .pan-mood{font-size:.75rem;margin-bottom:.8rem;padding:.3rem .6rem;display:inline-block;border:1px solid var(--border)}
-    .think-box{background:var(--bg);border-left:3px solid var(--accent);padding:.6rem .8rem;font-size:.8rem;color:#c0c0e0;line-height:1.5;font-style:italic;margin-bottom:1rem}
-    .sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .6rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+    .pan-mood{font-size:.78rem;margin-bottom:.8rem;padding:.3rem .6rem;display:inline-block;border:1px solid var(--border)}
+    .think-box{background:var(--bg);border-left:3px solid var(--accent);padding:.6rem .8rem;font-size:.82rem;color:#c0c0e0;line-height:1.5;font-style:italic;margin-bottom:1rem}
+    .sec{font-size:.62rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .6rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
     .rel{margin-bottom:1rem}
     .rel-header{display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem}
-    .rel-name{font-size:.8rem;font-weight:bold}
-    .rel-status{font-size:.62rem;color:var(--muted)}
+    .rel-name{font-size:.82rem;font-weight:bold}
+    .rel-status{font-size:.65rem;color:var(--muted)}
     .bar-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.3rem}
-    .bar-label{font-size:.62rem;color:var(--muted);width:58px;flex-shrink:0}
+    .bar-label{font-size:.65rem;color:var(--muted);width:60px;flex-shrink:0}
     .bar-track{flex:1;height:6px;background:#1a1a30;border-radius:3px;overflow:hidden}
     .bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
     .bar-fill.t{background:var(--accent)}.bar-fill.f{background:var(--green)}.bar-fill.r{background:var(--pink)}.bar-fill.v{background:var(--red)}
-    .bar-num{font-size:.65rem;color:var(--text);width:28px;text-align:right;flex-shrink:0;font-weight:bold}
+    .bar-num{font-size:.68rem;color:var(--text);width:28px;text-align:right;flex-shrink:0;font-weight:bold}
 
-    /* OVERLAYS */
-    .overlay{position:fixed;top:52px;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;padding:2rem;display:none}
-    .overlay.on{display:block}
-    .pg-t{font-size:1.1rem;font-weight:bold;margin-bottom:.3rem}.pg-s{font-size:.7rem;color:var(--muted);margin-bottom:1.5rem}
+    /* ── CONVERSATIONS OVERLAY ── */
+    .overlay{position:fixed;top:52px;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;padding:0;display:none}
+    .overlay.on{display:flex;flex-direction:column}
 
-    /* CONV LOG */
-    .conv-entry{border-left:2px solid var(--border);padding:.8rem 1rem;margin-bottom:1.2rem;max-width:680px;transition:border-color .2s}
-    .conv-entry:hover{border-color:var(--accent)}
-    .conv-ts{font-size:.68rem;color:var(--accent);margin-bottom:.3rem;letter-spacing:.08em}
-    .conv-participants{font-size:.62rem;color:var(--muted);margin-bottom:.7rem}
+    /* ROOM SELECTOR */
+    #room-selector{
+      flex-shrink:0;
+      padding:1.5rem 2rem 0;
+    }
+    .conv-pg-title{font-size:1.3rem;font-weight:bold;margin-bottom:.3rem}
+    .conv-pg-sub{font-size:.8rem;color:var(--muted);margin-bottom:1.2rem}
+    .room-tabs{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:0}
+    .room-tab{
+      padding:.5rem 1.1rem;font-size:.8rem;
+      border:1px solid var(--border);color:var(--muted);
+      cursor:pointer;transition:all .2s;letter-spacing:.08em;
+      background:var(--surface);
+    }
+    .room-tab:hover{border-color:var(--accent);color:var(--text)}
+    .room-tab.active{border-color:var(--accent);color:var(--accent);background:rgba(139,127,255,.1)}
+    .room-tab .tab-count{font-size:.65rem;color:var(--muted);margin-left:.3rem}
+    .room-tab.active .tab-count{color:var(--accent)}
+
+    /* CONVERSATION FEED */
+    #conv-feed{
+      flex:1;overflow-y:auto;
+      padding:1.5rem 2rem;
+      display:flex;flex-direction:column;
+      gap:1.5rem;
+    }
+
+    /* TICK BLOCK */
+    .tick-block{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:2px;
+      overflow:hidden;
+    }
+    .tick-header{
+      background:var(--surface2);
+      border-bottom:1px solid var(--border);
+      padding:.8rem 1.2rem;
+      display:flex;align-items:center;gap:1rem;
+    }
+    .tick-label{
+      font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;
+      color:var(--accent);font-weight:bold;
+    }
+    .tick-time{font-size:.75rem;color:var(--muted)}
+    .tick-participants{font-size:.75rem;color:var(--muted)}
+
+    /* MOVEMENT EVENT */
+    .movement-event{
+      font-size:1rem;
+      color:var(--yellow);
+      text-align:center;
+      padding:.7rem 1rem;
+      border-bottom:1px solid var(--border);
+      letter-spacing:.05em;
+      font-style:italic;
+    }
+
+    /* CONV INSIDE TICK */
+    .tick-conv{
+      padding:1.2rem;
+      border-bottom:1px solid var(--border);
+      /* REVERSE ORDER — newest at bottom, oldest first when scrolled down */
+    }
+    .tick-conv:last-child{border-bottom:none}
+
+    /* MESSAGES REVERSED — oldest at bottom */
+    .messages-reversed{
+      display:flex;
+      flex-direction:column-reverse;
+      gap:.7rem;
+    }
+
+    /* TIMESTAMP ABOVE EACH CONV */
+    .conv-stamp{
+      font-size:.95rem;
+      color:var(--cyan);
+      font-weight:bold;
+      margin-bottom:.5rem;
+      letter-spacing:.05em;
+    }
+    .conv-room-tag{
+      font-size:.82rem;
+      color:var(--muted);
+      margin-bottom:.8rem;
+    }
+    .conv-people{
+      display:flex;align-items:center;gap:.4rem;
+      margin-bottom:.9rem;
+      flex-wrap:wrap;
+    }
+    .conv-person-chip{
+      display:flex;align-items:center;gap:.3rem;
+      font-size:.8rem;
+      padding:.2rem .5rem;
+      border:1px solid var(--border);
+      background:var(--bg);
+    }
+
+    /* RELATIONSHIP DELTA BOX */
+    .delta-box{
+      margin-top:1rem;
+      background:var(--bg);
+      border:1px solid var(--border);
+      padding:.9rem 1rem;
+    }
+    .delta-box-title{
+      font-size:.72rem;text-transform:uppercase;letter-spacing:.15em;
+      color:var(--muted);margin-bottom:.7rem;
+    }
+    .delta-person-section{margin-bottom:.7rem}
+    .delta-person-label{
+      font-size:.82rem;font-weight:bold;
+      margin-bottom:.4rem;
+    }
+    .delta-pair-label{font-size:.75rem;color:var(--muted);margin:.3rem 0 .2rem}
+    .delta-stat-row{
+      display:flex;justify-content:space-between;
+      font-size:.82rem;padding:.18rem 0;
+    }
+    .delta-stat-label{color:var(--muted)}
+    .delta-stat-val{font-weight:bold;min-width:40px;text-align:right}
+    .val-pos{color:var(--green)}.val-neg{color:var(--red)}.val-zero{color:#3a3a5a}
 
     /* DIRECTOR */
+    #dir-overlay{padding:2rem}
     .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.2rem;margin-bottom:1.3rem;max-width:520px}
-    .dir-t{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem}
+    .dir-t{font-size:.68rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem}
     .drow{display:flex;gap:.4rem;margin-bottom:.5rem}
-    .drow input,.drow textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.82rem;outline:none}
+    .drow input,.drow textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.85rem;outline:none}
     .drow input:focus,.drow textarea:focus{border-color:var(--accent)}
     .dir-examples{background:var(--surface);border:1px solid var(--border);padding:1rem;max-width:520px}
-    .dir-ex-t{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem}
-    .dir-ex{font-size:.78rem;color:#5050a0;padding:.25rem 0;cursor:pointer;transition:color .2s}
+    .dir-ex-t{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem}
+    .dir-ex{font-size:.82rem;color:#5050a0;padding:.28rem 0;cursor:pointer;transition:color .2s}
     .dir-ex:hover{color:var(--accent)}
 
     /* ONBOARD */
+    #ob-overlay{padding:2rem}
     .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:260px}
-    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.65rem;font-family:inherit;font-size:.88rem;outline:none}
+    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.65rem;font-family:inherit;font-size:.9rem;outline:none}
     .ob-form input:focus{border-color:var(--accent)}
     .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem;max-width:520px}
     .prog-f{height:100%;background:var(--accent);transition:width .4s}
     .chatlog{max-height:300px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem;max-width:520px}
     .msg2{display:flex;flex-direction:column;gap:.12rem}
-    .msg2.ai .sp{font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
-    .msg2.hu .sp{font-size:.6rem;color:var(--muted);text-transform:uppercase;text-align:right}
-    .msg2.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .8rem;font-size:.84rem;line-height:1.5}
-    .msg2.hu .bb{background:var(--surface2);border-right:2px solid var(--border);padding:.5rem .8rem;font-size:.84rem;line-height:1.5;text-align:right}
-    .qbox{background:var(--surface);border:1px solid var(--border);padding:.8rem;font-size:.84rem;line-height:1.5;color:#c0c0e0;margin-bottom:.8rem;max-width:520px}
+    .msg2.ai .sp{font-size:.62rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
+    .msg2.hu .sp{font-size:.62rem;color:var(--muted);text-transform:uppercase;text-align:right}
+    .msg2.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .8rem;font-size:.88rem;line-height:1.5}
+    .msg2.hu .bb{background:var(--surface2);border-right:2px solid var(--border);padding:.5rem .8rem;font-size:.88rem;line-height:1.5;text-align:right}
+    .qbox{background:var(--surface);border:1px solid var(--border);padding:.8rem;font-size:.88rem;line-height:1.5;color:#c0c0e0;margin-bottom:.8rem;max-width:520px}
     .in-row{display:flex;gap:.4rem;max-width:520px}
-    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.84rem;resize:none;height:65px;outline:none}
+    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.88rem;resize:none;height:65px;outline:none}
     .in-row textarea:focus{border-color:var(--accent)}
-    .err{color:var(--red);font-size:.72rem;min-height:.9rem}
+    .err{color:var(--red);font-size:.75rem;min-height:.9rem}
     .typing{display:none;gap:4px;align-items:center;padding:.3rem 0}
     .typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite}
     .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
     .done-box{text-align:center;padding:2rem;max-width:500px}
     .done-i{font-size:2rem;margin-bottom:.7rem}.done-t{font-size:1.1rem;color:var(--accent);margin-bottom:.7rem}
-    .done-m{color:var(--muted);line-height:1.6;margin-bottom:1rem;font-size:.84rem}
-    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.8rem;font-size:.72rem;color:#aaa;line-height:1.6;margin-bottom:1rem}
-    .btn{background:var(--accent);border:none;color:#fff;padding:.55rem 1.1rem;font-family:inherit;font-size:.82rem;cursor:pointer;transition:opacity .2s}
+    .done-m{color:var(--muted);line-height:1.6;margin-bottom:1rem;font-size:.88rem}
+    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.8rem;font-size:.75rem;color:#aaa;line-height:1.6;margin-bottom:1rem}
+    .btn{background:var(--accent);border:none;color:#fff;padding:.55rem 1.1rem;font-family:inherit;font-size:.85rem;cursor:pointer;transition:opacity .2s}
     .btn:hover{opacity:.85}
-    .empty{color:var(--muted);font-size:.8rem;padding:1rem 0}
+    .empty{color:var(--muted);font-size:.85rem;padding:1.5rem 0}
+    .pg-t{font-size:1.3rem;font-weight:bold;margin-bottom:.3rem}
+    .pg-s{font-size:.8rem;color:var(--muted);margin-bottom:1.5rem}
   </style>
 </head>
 <body>
@@ -222,8 +292,8 @@
   </div>
 </div>
 
+<!-- MAP -->
 <div id="map-canvas"><div id="map-world"></div></div>
-
 <div id="zoom-ctrl">
   <div class="z-btn" onclick="zoom(.15)">+</div>
   <div class="z-btn" onclick="zoom(-.15)">−</div>
@@ -241,26 +311,24 @@
   <div id="p-rels"></div>
 </div>
 
-<!-- CONV MODAL OVERLAY -->
+<!-- CONV MODAL (map tab) -->
 <div id="conv-modal-overlay" onclick="closeConvModal()"></div>
-
-<!-- CONV MODAL -->
 <div id="conv-modal">
   <div class="modal-header">
-    <div>
-      <div class="modal-title" id="modal-title">Conversation</div>
-      <div class="modal-meta" id="modal-meta"></div>
-    </div>
+    <div><div class="modal-title" id="modal-title"></div><div class="modal-meta" id="modal-meta"></div></div>
     <div class="modal-close" onclick="closeConvModal()">✕</div>
   </div>
   <div class="modal-body" id="modal-body"></div>
 </div>
 
-<!-- CONVS OVERLAY -->
+<!-- CONVERSATIONS OVERLAY -->
 <div class="overlay" id="convs-overlay">
-  <div class="pg-t">Conversation Log</div>
-  <div class="pg-s">Full history of everything said</div>
-  <div id="conv-wrap"><div class="empty">No conversations yet...</div></div>
+  <div id="room-selector">
+    <div class="conv-pg-title">Conversations</div>
+    <div class="conv-pg-sub">Select a room to see its conversation history</div>
+    <div class="room-tabs" id="room-tabs"></div>
+  </div>
+  <div id="conv-feed"><div class="empty" style="padding:2rem">Select a room above</div></div>
 </div>
 
 <!-- DIRECTOR OVERLAY -->
@@ -300,7 +368,7 @@
   <div id="ob-chat" style="display:none">
     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem">
       <div id="ob-av2"></div>
-      <div><div style="font-weight:bold;font-size:.95rem" id="ob-agn"></div><div style="font-size:.62rem;color:var(--muted)">digital self — onboarding</div></div>
+      <div><div style="font-weight:bold;font-size:.95rem" id="ob-agn"></div><div style="font-size:.65rem;color:var(--muted)">digital self — onboarding</div></div>
     </div>
     <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
     <div class="chatlog" id="ob-msgs"></div>
@@ -320,11 +388,9 @@
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let sel=null, obAgent="", obTotal=0, cache={}, lastTickCount=0;
-let tx=100, ty=80, scale=1, dragging=false, lastX=0, lastY=0;
-// Per-room latest conversations: roomId → conversation entry
-let roomConvs={};
-
+let sel=null,obAgent="",obTotal=0,cache={};
+let tx=100,ty=80,scale=1,dragging=false,lastX=0,lastY=0;
+let roomConvs={}, activeRoomTab=null;
 const C={joseph:"#8b7fff",evie:"#ff79c6",martin:"#50fa7b"};
 const gc=n=>C[n?.toLowerCase()]||"#8b7fff";
 
@@ -346,8 +412,18 @@ function av(aid,size,style=""){
 }
 
 // ── Nav ────────────────────────────────────────────────────────────────────
-function showMap(){document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));document.getElementById("n-map").classList.add("on")}
-function showOverlay(n){document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));document.getElementById(n+"-overlay").classList.add("on");document.getElementById("n-"+n).classList.add("on");if(n==="convs") loadConvs()}
+function showMap(){
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
+  document.getElementById("n-map").classList.add("on");
+}
+function showOverlay(n){
+  document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
+  document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
+  document.getElementById(n+"-overlay").classList.add("on");
+  document.getElementById("n-"+n).classList.add("on");
+  if(n==="convs") initConvsTab();
+}
 
 // ── Load Map ───────────────────────────────────────────────────────────────
 async function loadMap(){
@@ -361,25 +437,17 @@ async function loadMap(){
     document.getElementById("m-tick").textContent=meta.tick_count||"—";
     document.getElementById("m-upd").textContent=meta.last_tick||"—";
 
-    // Index conversations by room
+    // Index convs by room name
     const convs=Object.values(d?.conversations||{});
     roomConvs={};
     convs.forEach(c=>{
-      // Find room id from location name
-      const wd=d?.world?.rooms||{};
-      for(const [rid,room] of Object.entries(wd)){
-        if(room.name===c.location){
-          if(!roomConvs[rid]) roomConvs[rid]=[];
-          roomConvs[rid].push(c);
-        }
-      }
+      const loc=c.location||"Unknown";
+      if(!roomConvs[loc]) roomConvs[loc]=[];
+      roomConvs[loc].push(c);
     });
 
-    const tc=meta.tick_count||0;
-    lastTickCount=tc;
-
     const wd=d?.world;
-    if(!wd?.rooms){mapWorld.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:3rem">Waiting for simulation...</div>';return;}
+    if(!wd?.rooms){mapWorld.innerHTML='<div style="color:var(--muted);font-size:.9rem;padding:3rem">Waiting for simulation...</div>';return;}
     buildMap(wd,d?.agents||{});
   }catch(e){console.error(e)}
 }
@@ -389,15 +457,12 @@ function buildMap(wd,agents){
   const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
   const RW=480,RH=360,GAP=90;
   let html="";
-
   sorted.forEach(([rid,room],i)=>{
     const x=i*(RW+GAP);
     const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
-    const roomConvList=roomConvs[rid]||[];
-    const hasConv=roomConvList.length>0;
-
+    const rConvs=roomConvs[room.name]||[];
+    const hasConv=rConvs.length>0;
     if(i<sorted.length-1) html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP}px"></div>`;
-
     html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:0;width:${RW}px;min-height:${RH}px">`;
     html+=`<div class="room-label">${room.name}</div>`;
     html+=`<div class="room-desc">${room.description}</div>`;
@@ -406,11 +471,7 @@ function buildMap(wd,agents){
       room.objects.slice(0,2).forEach(o=>html+=`<div class="obj"><span class="obj-name">${o.name}</span> — ${o.appearance}</div>`);
       html+=`</div>`;
     }
-
-    html+=`<div class="room-footer">`;
-
-    // Tokens
-    html+=`<div class="tokens">`;
+    html+=`<div class="room-footer"><div class="tokens">`;
     here.forEach(aid=>{
       const col=gc(aid),isSel=sel===aid;
       html+=`<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')">`;
@@ -420,100 +481,38 @@ function buildMap(wd,agents){
       html+=`</div>`;
     });
     html+=`</div>`;
-
-    // Conv icon
-    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConv('${rid}')" title="View conversations in this room">`;
-    html+=`💬`;
-    if(hasConv) html+=`<div class="badge">${Math.min(roomConvList.length,9)}</div>`;
-    html+=`</div>`;
-
-    html+=`</div>`; // room-footer
-    html+=`</div>`; // room
+    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">💬${hasConv?`<div class="badge">${Math.min(rConvs.length,9)}</div>`:""}</div>`;
+    html+=`</div></div>`;
   });
-
   mapWorld.innerHTML=html;
   mapWorld.style.width=(sorted.length*(RW+GAP))+"px";
   mapWorld.style.height=(RH+60)+"px";
   if(sel) refreshPanel(sel,agents);
 }
 
-// ── Room Conv Modal ────────────────────────────────────────────────────────
-function openRoomConv(rid){
-  const convList=roomConvs[rid]||[];
-  const wd=cache?.world?.rooms||{};
-  const roomName=wd[rid]?.name||rid;
-
+// ── Conv Modal (map tab — shows ONLY this tick's convs, top down) ──────────
+function openRoomConvModal(roomName){
+  const rConvs=roomConvs[roomName]||[];
   document.getElementById("modal-title").textContent=roomName;
 
-  if(!convList.length){
-    document.getElementById("modal-meta").textContent="No conversations yet";
-    document.getElementById("modal-body").innerHTML='<div class="empty">Nothing has happened here yet.</div>';
+  // Only show conversations from current tick (last few minutes)
+  const meta=cache?.simulation?.meta||{};
+  const lastTick=meta.last_tick||"";
+  const tickConvs=rConvs.filter(c=>{
+    if(!lastTick) return true;
+    // Show convs from roughly this tick (within last 20 mins)
+    const cTime=new Date(c.timestamp);
+    const tTime=new Date(lastTick);
+    return Math.abs(cTime-tTime)<20*60*1000;
+  });
+
+  document.getElementById("modal-meta").textContent=tickConvs.length?`${tickConvs.length} conversation${tickConvs.length>1?"s":""} this tick`:"No conversations this tick";
+
+  if(!tickConvs.length){
+    document.getElementById("modal-body").innerHTML='<div class="empty">Nothing happened here this tick.</div>';
   } else {
-    // Show all conversations in this room, most recent first
-    const recent=[...convList].reverse().slice(0,5);
-    document.getElementById("modal-meta").textContent=`${convList.length} conversation${convList.length>1?"s":""}`;
-
-    let html="";
-    recent.forEach((conv,ci)=>{
-      const parts=conv.participants||[];
-      if(ci>0) html+=`<div style="border-top:1px solid var(--border);margin:.8rem 0"></div>`;
-      html+=`<div style="font-size:.62rem;color:var(--muted);margin-bottom:.7rem">⏰ ${conv.timestamp||"—"} · ${parts.join(", ")}</div>`;
-
-      // Build speaker index for left/right sides
-      const speakerIdx={};
-      parts.forEach((p,i)=>speakerIdx[p.toLowerCase()]=i);
-
-      (conv.lines||[]).forEach(line=>{
-        const colon=line.indexOf(":");
-        if(colon<0){html+=`<div style="font-size:.88rem;color:var(--muted);padding:.3rem 0">${line}</div>`;return;}
-        const speaker=line.slice(0,colon).trim().toLowerCase();
-        const text=line.slice(colon+1).trim();
-        const idx=speakerIdx[speaker]??0;
-        const isRight=idx%2===1;
-        const col=gc(speaker);
-
-        html+=`<div class="msg-row ${isRight?"right":""}">`;
-        html+=av(speaker,36,`border:2px solid ${col}`);
-        html+=`<div class="msg-content">`;
-        html+=`<div class="msg-name">${speaker}</div>`;
-        html+=`<div class="msg-bubble" style="${isRight?`background:${col}30;border:1px solid ${col}50`:""}">`;
-        html+=text;
-        html+=`</div></div></div>`;
-      });
-
-      // Relationship deltas
-      if(conv.deltas && Object.keys(conv.deltas).length){
-        html+=`<div class="delta-section">`;
-        html+=`<div class="delta-title">Relationship Changes</div>`;
-        for(const [agent,agentDeltas] of Object.entries(conv.deltas)){
-          if(!agentDeltas||typeof agentDeltas!=="object") continue;
-          html+=`<div class="delta-agent">`;
-          html+=`<div class="delta-agent-name" style="color:${gc(agent)}">${agent}</div>`;
-          for(const [other,rd] of Object.entries(agentDeltas)){
-            if(!rd||typeof rd!=="object") continue;
-            const fields=[
-              {label:"trust",val:rd.trust||0},
-              {label:"friendship",val:rd.friendship||0},
-              {label:"romantic",val:rd.romantic||0},
-              {label:"rivalry",val:rd.rivalry||0}
-            ].filter(f=>f.val!==0);
-            if(fields.length){
-              html+=`<div style="font-size:.68rem;color:var(--muted);margin:.2rem 0">→ ${other}:</div>`;
-              fields.forEach(f=>{
-                const cls=f.val>0?"delta-pos":"delta-neg";
-                const sign=f.val>0?"+":"";
-                html+=`<div class="delta-row"><span class="delta-label">${f.label}</span><span class="delta-val ${cls}">${sign}${f.val}</span></div>`;
-              });
-            }
-          }
-          html+=`</div>`;
-        }
-        html+=`</div>`;
-      }
-    });
-    document.getElementById("modal-body").innerHTML=html;
+    document.getElementById("modal-body").innerHTML=tickConvs.map(conv=>buildConvHTML(conv,"topdown")).join('<div style="border-top:1px solid var(--border);margin:.8rem 0"></div>');
   }
-
   document.getElementById("conv-modal").classList.add("show");
   document.getElementById("conv-modal-overlay").classList.add("show");
 }
@@ -523,11 +522,176 @@ function closeConvModal(){
   document.getElementById("conv-modal-overlay").classList.remove("show");
 }
 
+// ── Build conversation HTML (used in both modal and conv tab) ──────────────
+function buildConvHTML(conv, direction="topdown"){
+  const parts=conv.participants||[];
+  const speakerIdx={};
+  parts.forEach((p,i)=>speakerIdx[p.toLowerCase()]=i);
+
+  const lineHTML=(line)=>{
+    const colon=line.indexOf(":");
+    if(colon<0) return `<div style="font-size:.9rem;color:var(--muted);padding:.3rem 0;text-align:center">${line}</div>`;
+    const speaker=line.slice(0,colon).trim().toLowerCase();
+    const text=line.slice(colon+1).trim();
+    const idx=speakerIdx[speaker]??0;
+    const isRight=idx%2===1;
+    const col=gc(speaker);
+    return `<div class="msg-row ${isRight?"right":""}">
+      ${av(speaker,36,`border:2px solid ${col}`)}
+      <div class="msg-content">
+        <div class="msg-name">${speaker}</div>
+        <div class="msg-bubble" style="${isRight?`background:${col}28;border:1px solid ${col}50`:""}">${text}</div>
+      </div>
+    </div>`;
+  };
+
+  const lines=conv.lines||[];
+  let linesHTML;
+  if(direction==="bottomup"){
+    // Reversed — newest at top of display = last message first
+    linesHTML=`<div class="messages-reversed">${[...lines].map(lineHTML).join("")}</div>`;
+  } else {
+    linesHTML=lines.map(lineHTML).join("");
+  }
+
+  // Delta box — ALWAYS show all fields even if 0
+  const deltas=conv.deltas||{};
+  let deltaHTML=`<div class="delta-box"><div class="delta-box-title">Relationship Changes</div>`;
+
+  if(Object.keys(deltas).length===0){
+    // No delta data — show placeholder
+    parts.forEach(agent=>{
+      const ocol=gc(agent);
+      deltaHTML+=`<div class="delta-person-section">`;
+      deltaHTML+=`<div class="delta-person-label" style="color:${ocol}">${av(agent,22,`border:1.5px solid ${ocol};margin-right:.3rem;vertical-align:middle`)} ${agent}</div>`;
+      deltaHTML+=`<div style="font-size:.78rem;color:var(--muted);font-style:italic">No delta data yet — run new simulation.py</div>`;
+      deltaHTML+=`</div>`;
+    });
+  } else {
+    for(const [agent,agentDeltas] of Object.entries(deltas)){
+      if(!agentDeltas||typeof agentDeltas!=="object") continue;
+      const acol=gc(agent);
+      deltaHTML+=`<div class="delta-person-section">`;
+      deltaHTML+=`<div class="delta-person-label" style="color:${acol}">${av(agent,22,`border:1.5px solid ${acol};margin-right:.3rem;vertical-align:middle`)} ${agent}</div>`;
+      for(const [other,rd] of Object.entries(agentDeltas)){
+        if(!rd||typeof rd!=="object") continue;
+        const ocol=gc(other);
+        deltaHTML+=`<div class="delta-pair-label">→ <span style="color:${ocol}">${other}</span></div>`;
+        const fields=[
+          {label:"trust",val:rd.trust||0},
+          {label:"friendship",val:rd.friendship||0},
+          {label:"romantic",val:rd.romantic||0},
+          {label:"rivalry",val:rd.rivalry||0}
+        ];
+        fields.forEach(f=>{
+          const cls=f.val>0?"val-pos":f.val<0?"val-neg":"val-zero";
+          const sign=f.val>0?"+":"";
+          deltaHTML+=`<div class="delta-stat-row">
+            <span class="delta-stat-label">${f.label}</span>
+            <span class="delta-stat-val ${cls}">${sign}${f.val}</span>
+          </div>`;
+        });
+      }
+      deltaHTML+=`</div>`;
+    }
+  }
+  deltaHTML+=`</div>`;
+
+  return linesHTML+deltaHTML;
+}
+
+// ── Conversations Tab — Room-based ─────────────────────────────────────────
+function initConvsTab(){
+  const wd=cache?.world?.rooms||{};
+  const roomNames=Object.values(wd).map(r=>r.name);
+  // Also include any rooms that appear in conversations but might not be in world
+  Object.keys(roomConvs).forEach(name=>{if(!roomNames.includes(name)) roomNames.push(name)});
+
+  const tabs=document.getElementById("room-tabs");
+  tabs.innerHTML=roomNames.map(name=>{
+    const count=(roomConvs[name]||[]).length;
+    return `<div class="room-tab ${activeRoomTab===name?"active":""}" onclick="selectRoomTab('${name.replace(/'/g,"\\'")}')">
+      ${name}<span class="tab-count">${count>0?`(${count})`:""}</span>
+    </div>`;
+  }).join("");
+
+  if(!activeRoomTab && roomNames.length>0){
+    selectRoomTab(roomNames[0]);
+  } else if(activeRoomTab){
+    renderRoomFeed(activeRoomTab);
+  }
+}
+
+function selectRoomTab(roomName){
+  activeRoomTab=roomName;
+  document.querySelectorAll(".room-tab").forEach(t=>{
+    t.classList.toggle("active",t.textContent.trim().startsWith(roomName));
+  });
+  renderRoomFeed(roomName);
+}
+
+function renderRoomFeed(roomName){
+  const convs=(roomConvs[roomName]||[]);
+  const feed=document.getElementById("conv-feed");
+
+  if(!convs.length){
+    feed.innerHTML=`<div class="empty">No conversations in ${roomName} yet.</div>`;
+    return;
+  }
+
+  // Group by tick (approximate — group convs within 20 minutes of each other)
+  const groups=[];
+  let currentGroup=null;
+
+  // Sort oldest first for grouping
+  const sorted=[...convs].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+  sorted.forEach(conv=>{
+    const cTime=new Date(conv.timestamp);
+    if(!currentGroup || (cTime-new Date(currentGroup.time))>20*60*1000){
+      currentGroup={time:conv.timestamp,convs:[]};
+      groups.push(currentGroup);
+    }
+    currentGroup.convs.push(conv);
+  });
+
+  // Render newest group at top
+  const reversed=[...groups].reverse();
+
+  feed.innerHTML=reversed.map((group,gi)=>{
+    const tickNum=reversed.length-gi;
+    const parts=[...new Set(group.convs.flatMap(c=>c.participants||[]))];
+
+    let html=`<div class="tick-block">`;
+    html+=`<div class="tick-header">
+      <div class="tick-label">Tick ${tickNum}</div>
+      <div class="tick-time">⏰ ${group.time}</div>
+      <div class="tick-participants">${parts.join(", ")}</div>
+    </div>`;
+
+    // Each conversation in this tick block — bottomup reading
+    group.convs.forEach(conv=>{
+      const cparts=conv.participants||[];
+      html+=`<div class="tick-conv">`;
+
+      // People chips
+      html+=`<div class="conv-people">`;
+      cparts.forEach(p=>html+=`<div class="conv-person-chip">${av(p,20,`border:1.5px solid ${gc(p)}`)} ${p}</div>`);
+      html+=`</div>`;
+
+      html+=buildConvHTML(conv,"bottomup");
+      html+=`</div>`;
+    });
+
+    html+=`</div>`;
+    return html;
+  }).join("");
+}
+
 // ── Side Panel ─────────────────────────────────────────────────────────────
 function pick(aid){
   if(sel===aid){closePanel();return;}
-  sel=aid;
-  refreshPanel(aid,cache?.agents||{});
+  sel=aid;refreshPanel(aid,cache?.agents||{});
   document.getElementById("panel").classList.add("open");
   buildMap(cache?.world||{},cache?.agents||{});
 }
@@ -539,17 +703,14 @@ function refreshPanel(aid,agents){
   document.getElementById("p-av-wrap").innerHTML=`<img class="pan-av" src="/static/${aid}.png" style="border-color:${col};box-shadow:0 0 20px ${col}30" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
   document.getElementById("p-name").textContent=aid;
   document.getElementById("p-name").style.color=col;
-  const mood=ag.mood||"neutral";
-  document.getElementById("p-mood").textContent=mood;
+  document.getElementById("p-mood").textContent=ag.mood||"neutral";
   document.getElementById("p-mood").style.borderColor=col;
   document.getElementById("p-mood").style.color=col;
   document.getElementById("p-think").textContent=ag.thought?`"${ag.thought}"`:"...";
-
   let rh="";
   for(const [o,r] of Object.entries(lt)){
     const ocol=gc(o);
-    rh+=`<div class="rel">
-      <div class="rel-header">${av(o,28,`border:2px solid ${ocol}`)}<span class="rel-name" style="color:${ocol}">${o}</span><span class="rel-status">${r.status||r.current_status||"friend"}</span></div>`;
+    rh+=`<div class="rel"><div class="rel-header">${av(o,28,`border:2px solid ${ocol}`)}<span class="rel-name" style="color:${ocol}">${o}</span><span class="rel-status">${r.status||r.current_status||"friend"}</span></div>`;
     [{label:"trust",cls:"t",val:r.trust||0},{label:"friends",cls:"f",val:r.friendship||0},{label:"romantic",cls:"r",val:r.romantic||0},{label:"rivalry",cls:"v",val:r.rivalry||0}].forEach(b=>{
       rh+=`<div class="bar-row"><span class="bar-label">${b.label}</span><div class="bar-track"><div class="bar-fill ${b.cls}" style="width:${b.val}%"></div></div><span class="bar-num">${b.val}</span></div>`;
     });
@@ -559,42 +720,6 @@ function refreshPanel(aid,agents){
 }
 
 function closePanel(){sel=null;document.getElementById("panel").classList.remove("open");buildMap(cache?.world||{},cache?.agents||{})}
-
-// ── Conversation Log ───────────────────────────────────────────────────────
-async function loadConvs(){
-  const d=await (await fetch("/api/status")).json();
-  const convs=Object.values(d?.conversations||{}).reverse();
-  const wrap=document.getElementById("conv-wrap");
-  if(!convs.length){wrap.innerHTML='<div class="empty">No conversations yet...</div>';return;}
-
-  const speakerSides=(parts)=>{const m={};parts.forEach((p,i)=>m[p.toLowerCase()]=i);return m;};
-
-  wrap.innerHTML=convs.map(conv=>{
-    const parts=conv.participants||[];
-    const sides=speakerSides(parts);
-    const lines=(conv.lines||[]).map(line=>{
-      const colon=line.indexOf(":");
-      if(colon<0) return `<div style="font-size:.88rem;color:var(--muted);padding:.2rem 0">${line}</div>`;
-      const speaker=line.slice(0,colon).trim().toLowerCase();
-      const text=line.slice(colon+1).trim();
-      const isRight=(sides[speaker]??0)%2===1;
-      const col=gc(speaker);
-      return `<div class="msg-row ${isRight?"right":""}">
-        ${av(speaker,30,`border:2px solid ${col}`)}
-        <div class="msg-content">
-          <div class="msg-name">${speaker}</div>
-          <div class="msg-bubble" style="${isRight?`background:${col}30;border:1px solid ${col}50`:""}font-size:.86rem">${text}</div>
-        </div>
-      </div>`;
-    }).join("");
-
-    return `<div class="conv-entry">
-      <div class="conv-ts">⏰ ${conv.timestamp||"—"}</div>
-      <div class="conv-participants">${parts.join(", ")} · ${conv.location||""}</div>
-      ${lines}
-    </div>`;
-  }).join("");
-}
 
 // ── Director ───────────────────────────────────────────────────────────────
 function setDir(el){document.getElementById("d-inst").value=el.textContent}
@@ -627,10 +752,8 @@ async function obLogin(){
   document.getElementById("ob-av2").innerHTML=av(obAgent,40,`border:2px solid ${col}`);
   document.getElementById("ob-agn").textContent=obAgent[0].toUpperCase()+obAgent.slice(1);
   const s=await (await fetch("/onboard/start")).json();
-  obTotal=s.total_questions;
-  addMsg("ai",s.message);setTimeout(()=>setQ(s.question,0,obTotal),400);
+  obTotal=s.total_questions;addMsg("ai",s.message);setTimeout(()=>setQ(s.question,0,obTotal),400);
 }
-
 async function obSend(){
   const ta=document.getElementById("ob-ans"),ans=ta.value.trim();
   if(!ans) return;
@@ -644,7 +767,6 @@ async function obSend(){
   if(d.done){setTimeout(()=>{document.getElementById("ob-chat").style.display="none";document.getElementById("ob-done").style.display="block";document.getElementById("ob-dm").textContent=d.reaction;document.getElementById("ob-dp").textContent=d.new_prompt_preview},1500)}
   else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
 }
-
 function addMsg(type,text){
   const log=document.getElementById("ob-msgs"),m=document.createElement("div");
   m.className=`msg2 ${type}`;
@@ -655,8 +777,7 @@ function setQ(q,i,t){document.getElementById("ob-q").textContent=q;document.getE
 function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend()}}
 
 // ── Init ───────────────────────────────────────────────────────────────────
-applyT();
-loadMap();
+applyT();loadMap();
 setInterval(()=>{if(!document.querySelector(".overlay.on")) loadMap()},20000);
 </script>
 </body>
