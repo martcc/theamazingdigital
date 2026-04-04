@@ -1,34 +1,20 @@
 """
-app.py — Flask website that reads from Firebase.
-This can be hosted anywhere — Railway, Render, etc.
-It doesn't need Ollama or your PC to be reachable.
+app.py — Railway hosted version.
+Only reads from Firebase. No ollama, no memory module needed.
+Your PC runs the simulation and pushes to Firebase.
+This just displays it.
 """
 
 from flask import Flask, render_template, request, jsonify, session
+import os
+import json
 import urllib.request
 import urllib.error
-import json
-import os
-import urllib.request
-
-try:
-    import ollama
-    OLLAMA_AVAILABLE = True
-except:
-    OLLAMA_AVAILABLE = False
-
-try:
-    import memory
-    MEMORY_AVAILABLE = True
-except:
-    MEMORY_AVAILABLE = False
 
 app = Flask(__name__)
-app.secret_key = "simulation_secret_key_change_this"
+app.secret_key = os.environ.get("SECRET_KEY", "theamazingdigital2024")
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
-FIREBASE_URL = "https://theamazingdigital-2355e-default-rtdb.firebaseio.com"
-MODEL = "hf.co/DavidAU/Qwen3-The-Xiaolong-Josiefied-Omega-Directive-22B-uncensored-abliterated-GGUF:Q4_K_M"
+FIREBASE_URL = os.environ.get("FIREBASE_URL", "https://theamazingdigital-2355e-default-rtdb.firebaseio.com")
 
 AGENT_PASSWORDS = {
     "joseph": "joe123",
@@ -36,41 +22,26 @@ AGENT_PASSWORDS = {
     "martin": "martin123"
 }
 
-ONBOARDING_QUESTIONS = [
-    "How would your closest friends describe you in 3 words?",
-    "What are you most proud of that most people don't know about?",
-    "What genuinely irritates you that most people find normal?",
-    "How do you act when you're stressed — go quiet, get snappy, make jokes?",
-    "What kind of people do you naturally click with?",
-    "What do you secretly care about more than you let on?",
-    "How do you feel about conflict — avoid it, lean into it, or something else?",
-    "What does a perfect day look like for you?",
-    "What's a fear or insecurity you'd admit to?",
-    "Is there anything about yourself you're still figuring out?"
-]
+DIRECTOR_PASSWORD = "director123"
 
-# ── Firebase Helper ───────────────────────────────────────────────────────────
+# ── Firebase ──────────────────────────────────────────────────────────────────
 
 def firebase_get(path):
-    if FIREBASE_URL == "YOUR_FIREBASE_URL_HERE":
-        return None
     url = f"{FIREBASE_URL}/{path}.json"
     try:
-        with urllib.request.urlopen(url) as response:
-            return json.loads(response.read())
+        with urllib.request.urlopen(url, timeout=5) as r:
+            return json.loads(r.read())
     except:
         return None
 
 def firebase_put(path, data):
-    if FIREBASE_URL == "YOUR_FIREBASE_URL_HERE":
-        return None
     url = f"{FIREBASE_URL}/{path}.json"
     payload = json.dumps(data).encode("utf-8")
     req = urllib.request.Request(url, data=payload, method="PUT",
                                   headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(req) as response:
-            return json.loads(response.read())
+        with urllib.request.urlopen(req, timeout=5) as r:
+            return json.loads(r.read())
     except:
         return None
 
@@ -78,37 +49,61 @@ def firebase_put(path, data):
 
 @app.route("/")
 def index():
+    ua = request.headers.get("User-Agent","").lower()
+    is_mobile = any(x in ua for x in ["mobile","android","iphone","ipad","ipod"])
+    if is_mobile:
+        return render_template("mobile.html")
     return render_template("index.html")
+
+@app.route("/api/status")
+def api_status():
+    data = firebase_get("")
+    if not data:
+        return jsonify({"agents": {}, "conversations": {}, "events": {}, "simulation": {}})
+    return jsonify(data)
 
 @app.route("/login", methods=["POST"])
 def login():
-    data = request.json
-    agent_name = data.get("agent", "").lower()
-    password   = data.get("password", "")
+    data      = request.json
+    agent     = data.get("agent", "").lower()
+    password  = data.get("password", "")
 
-    if agent_name not in AGENT_PASSWORDS:
+    if agent not in AGENT_PASSWORDS:
         return jsonify({"success": False, "error": "Character not found."})
-    if AGENT_PASSWORDS[agent_name] != password:
+    if AGENT_PASSWORDS[agent] != password:
         return jsonify({"success": False, "error": "Wrong password."})
 
-    session["agent"] = agent_name
-    session["onboarding_history"] = []
-    session["question_index"] = 0
+    session["agent"] = agent
 
-    core = memory.get_core(agent_name)
-    return jsonify({
-        "success": True,
-        "agent": agent_name,
-        "onboarded": core.get("onboarded", False)
-    })
+    # Check if onboarded via Firebase
+    onboarded = firebase_get(f"agents/{agent}/onboarded") or False
+
+    return jsonify({"success": True, "agent": agent, "onboarded": onboarded})
 
 @app.route("/onboard/start")
 def onboard_start():
-    agent_name = session.get("agent")
-    if not agent_name:
+    agent = session.get("agent")
+    if not agent:
         return jsonify({"error": "Not logged in"}), 401
 
-    opening = f"""Hey. I'm your digital version — {agent_name.capitalize()} inside the simulation.
+    session["onboarding_history"] = []
+    session["question_index"] = 0
+
+    questions = [
+        "How would your closest friends describe you in 3 words?",
+        "What are you most proud of that most people don't know about?",
+        "What genuinely irritates you that most people find normal?",
+        "How do you act when you're stressed — go quiet, get snappy, make jokes?",
+        "What kind of people do you naturally click with?",
+        "What do you secretly care about more than you let on?",
+        "How do you feel about conflict — avoid it, lean into it, or something else?",
+        "What does a perfect day look like for you?",
+        "What's a fear or insecurity you'd admit to?",
+        "Is there anything about yourself you're still figuring out?"
+    ]
+    session["questions"] = questions
+
+    opening = f"""Hey. I'm your digital version — {agent.capitalize()} inside the simulation.
 
 I need to ask you some questions so I actually know how to be you. Not a fake version. The real one.
 
@@ -116,128 +111,74 @@ This isn't a test. Just be honest. Ready?"""
 
     return jsonify({
         "message": opening,
-        "question": ONBOARDING_QUESTIONS[0],
+        "question": questions[0],
         "question_index": 0,
-        "total_questions": len(ONBOARDING_QUESTIONS)
+        "total_questions": len(questions)
     })
 
 @app.route("/onboard/answer", methods=["POST"])
 def onboard_answer():
-    agent_name = session.get("agent")
-    if not agent_name:
+    agent   = session.get("agent")
+    if not agent:
         return jsonify({"error": "Not logged in"}), 401
 
-    data    = request.json
-    answer  = data.get("answer", "")
-    q_index = session.get("question_index", 0)
+    data     = request.json
+    answer   = data.get("answer", "")
+    q_index  = session.get("question_index", 0)
+    questions = session.get("questions", [])
+    history  = session.get("onboarding_history", [])
 
-    history = session.get("onboarding_history", [])
-    history.append({"question": ONBOARDING_QUESTIONS[q_index], "answer": answer})
+    history.append({"question": questions[q_index], "answer": answer})
     session["onboarding_history"] = history
 
-    core = memory.get_core(agent_name)
-    core["onboarding_answers"][ONBOARDING_QUESTIONS[q_index]] = answer
-    memory.save_core(agent_name, core)
+    # Save answer to Firebase
+    firebase_put(f"onboarding/{agent}/{q_index}", {
+        "question": questions[q_index],
+        "answer": answer
+    })
 
-    history_text = "\n".join([f"Q: {h['question']}\nA: {h['answer']}" for h in history])
-
-    reaction_prompt = f"""You are the AI version of {agent_name.capitalize()} inside a simulation interviewing your real human counterpart.
-
-Interview so far:
-{history_text}
-
-React briefly to their last answer (1-2 sentences). Be real, not robotic.
-No think tags. Just your reaction."""
-
-    try:
-        response = ollama.chat(
-            model=MODEL,
-            messages=[{"role": "user", "content": reaction_prompt}]
-        )
-        reaction = response["message"]["content"].strip()
-        if "<think>" in reaction:
-            reaction = reaction.split("</think>")[-1].strip()
-    except:
-        reaction = "Got it."
+    # Simple reactions based on index
+    reactions = [
+        "Interesting. I'll remember that.",
+        "That tells me a lot, actually.",
+        "Good to know. Most people wouldn't admit that.",
+        "That tracks.",
+        "Got it.",
+        "I'll keep that in mind.",
+        "That's useful.",
+        "Okay. That makes sense.",
+        "Noted.",
+        "That's everything I needed."
+    ]
+    reaction = reactions[q_index] if q_index < len(reactions) else "Got it."
 
     next_index = q_index + 1
     session["question_index"] = next_index
 
-    if next_index >= len(ONBOARDING_QUESTIONS):
-        return finalize_onboarding(agent_name, history, reaction)
+    if next_index >= len(questions):
+        # Save completion to Firebase
+        firebase_put(f"agents/{agent}/onboarded", True)
+        firebase_put(f"onboarding/{agent}/complete", True)
 
-    return jsonify({
-        "reaction": reaction,
-        "question": ONBOARDING_QUESTIONS[next_index],
-        "question_index": next_index,
-        "total_questions": len(ONBOARDING_QUESTIONS),
-        "done": False
-    })
-
-def finalize_onboarding(agent_name, history, last_reaction):
-    history_text = "\n".join([f"Q: {h['question']}\nA: {h['answer']}" for h in history])
-
-    synthesis_prompt = f"""Based on this interview with a real person, write a personality description for their AI simulation character named {agent_name.capitalize()}.
-
-Interview:
-{history_text}
-
-Write 150-200 words in second person ("You are {agent_name.capitalize()}...").
-Be specific. Capture how they talk, what they care about, their quirks.
-No think tags. Just the personality description."""
-
-    try:
-        response = ollama.chat(
-            model=MODEL,
-            messages=[{"role": "user", "content": synthesis_prompt}]
-        )
-        new_prompt = response["message"]["content"].strip()
-        if "<think>" in new_prompt:
-            new_prompt = new_prompt.split("</think>")[-1].strip()
-    except:
-        new_prompt = f"You are {agent_name.capitalize()}."
-
-    core = memory.get_core(agent_name)
-    core["core_traits"]["base_prompt"] = new_prompt
-    core["onboarded"] = True
-    memory.save_core(agent_name, core)
-
-    closing = f"""{last_reaction}
+        closing = f"""{reaction}
 
 That's everything I needed. I think I've got a pretty good picture of you now.
 
 You can come back and update me anytime. People change."""
 
+        return jsonify({
+            "reaction": closing,
+            "done": True,
+            "new_prompt_preview": f"Onboarding complete for {agent.capitalize()}. Your PC will process this on the next simulation tick."
+        })
+
     return jsonify({
-        "reaction": closing,
-        "done": True,
-        "new_prompt_preview": new_prompt[:200] + "..."
+        "reaction": reaction,
+        "question": questions[next_index],
+        "question_index": next_index,
+        "total_questions": len(questions),
+        "done": False
     })
-
-@app.route("/api/status")
-def api_status():
-    """Read live simulation state from Firebase."""
-    data = firebase_get("")
-    if not data:
-        # Fall back to local files if Firebase not configured
-        agents = memory.list_agents()
-        result = {"agents": {}, "conversations": [], "meta": {}}
-        for agent in agents:
-            try:
-                core = memory.get_core(agent)
-                st   = memory.get_short_term(agent)
-                lt   = memory.get_long_term(agent)
-                result["agents"][agent] = {
-                    "mood": st.get("current_mood", "unknown"),
-                    "location": st.get("current_location", "home"),
-                    "conversations_today": len(st.get("conversations", [])),
-                    "relationships": lt.get("relationships", {})
-                }
-            except:
-                pass
-        return jsonify(result)
-
-    return jsonify(data)
 
 @app.route("/director", methods=["POST"])
 def director():
@@ -245,16 +186,14 @@ def director():
     instruction = data.get("instruction", "")
     password    = data.get("password", "")
 
-    if password != "director123":
+    if password != DIRECTOR_PASSWORD:
         return jsonify({"error": "Wrong password"}), 403
 
-    directive_path = os.path.join(os.path.dirname(__file__), "..", "director_instruction.json")
-    with open(directive_path, "w") as f:
-        json.dump({"active": True, "instruction": instruction}, f)
-
+    from datetime import datetime
     firebase_put("director/latest", {
         "instruction": instruction,
-        "sent_at": "now"
+        "active": True,
+        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
     return jsonify({"success": True, "instruction": instruction})
