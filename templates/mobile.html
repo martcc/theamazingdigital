@@ -565,7 +565,9 @@ function renderFeed(roomName){
     const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
     const tickNum=group.tick&&group.tick!=="?"?group.tick:"?";
 
-    let html=`<div class="tick-block"><div class="tick-header"><span class="tick-lbl">Tick ${tickNum}</span><span class="tick-time">${group.time}</span>${parts.length?`<span class="tick-parts">${parts.join(", ")}</span>`:""}</div>`;
+    const tickDate2=new Date(group.time);
+    const tickTimeStr2=isNaN(tickDate2)?group.time:tickDate2.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"});
+    let html=`<div class="tick-block"><div class="tick-header"><span class="tick-lbl">Tick ${tickNum}</span><span class="tick-time">${tickTimeStr2}</span>${parts.length?`<span class="tick-parts">${parts.join(", ")}</span>`:""}</div>`;
 
     group.items.forEach(item=>{
       if(item.itemType==="movement"){
