@@ -689,8 +689,6 @@ function renderRoomFeed(roomName){
   const reversed=[...groups].sort((a,b)=>b.tick-a.tick);
 
   feed.innerHTML=reversed.map((group,gi)=>{
-    // Find the tick number from the conversations in this group
-    const convItems=group.items.filter(i=>i.itemType==="conv");
     const tickNum=group.tick||gi+1;
     const convItems=group.items.filter(i=>i.itemType==="conv");
     const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
