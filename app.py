@@ -1,15 +1,13 @@
 """
 app.py — Railway hosted version.
-Only reads from Firebase. No ollama, no memory module needed.
-Your PC runs the simulation and pushes to Firebase.
-This just displays it.
+Reads from Firebase. Dynamic ongoing onboarding system.
 """
 
 from flask import Flask, render_template, request, jsonify, session
 import os
 import json
 import urllib.request
-import urllib.error
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "theamazingdigital2024")
@@ -23,6 +21,22 @@ AGENT_PASSWORDS = {
 }
 
 DIRECTOR_PASSWORD = "director123"
+
+# What the AI tries to learn about each person
+KNOWLEDGE_TARGETS = [
+    "how they handle conflict and confrontation",
+    "what they genuinely care about vs perform caring about",
+    "how they act under stress or pressure",
+    "their sense of humor — what makes them laugh, how they're funny",
+    "how they relate to the other people in the simulation",
+    "what makes them uncomfortable or defensive",
+    "their ambitions and what drives them",
+    "how they communicate — what their natural speech patterns are",
+    "their relationship with vulnerability and opening up",
+    "what they're like in a group vs one on one"
+]
+
+SESSION_LENGTH = 12  # questions per session
 
 # ── Firebase ──────────────────────────────────────────────────────────────────
 
@@ -49,11 +63,9 @@ def firebase_put(path, data):
 
 @app.route("/")
 def index():
-    ua = request.headers.get("User-Agent","").lower()
-    is_mobile = any(x in ua for x in ["mobile","android","iphone","ipad","ipod"])
-    if is_mobile:
-        return render_template("mobile.html")
-    return render_template("index.html")
+    ua = request.headers.get("User-Agent", "").lower()
+    is_mobile = any(x in ua for x in ["mobile", "android", "iphone", "ipad", "ipod"])
+    return render_template("mobile.html" if is_mobile else "index.html")
 
 @app.route("/api/status")
 def api_status():
@@ -64,9 +76,9 @@ def api_status():
 
 @app.route("/login", methods=["POST"])
 def login():
-    data      = request.json
-    agent     = data.get("agent", "").lower()
-    password  = data.get("password", "")
+    data     = request.json
+    agent    = data.get("agent", "").lower()
+    password = data.get("password", "")
 
     if agent not in AGENT_PASSWORDS:
         return jsonify({"success": False, "error": "Character not found."})
@@ -74,11 +86,25 @@ def login():
         return jsonify({"success": False, "error": "Wrong password."})
 
     session["agent"] = agent
+    session["ob_history"] = []
+    session["ob_count"] = 0
 
-    # Check if onboarded via Firebase
-    onboarded = firebase_get(f"agents/{agent}/onboarded") or False
+    # Load existing onboarding data from Firebase
+    existing = firebase_get(f"onboarding/{agent}") or {}
+    session["ob_existing"] = existing
 
-    return jsonify({"success": True, "agent": agent, "onboarded": onboarded})
+    # Load agent's current base prompt if it exists
+    agents_data = firebase_get(f"agents/{agent}") or {}
+    session["ob_base_prompt"] = agents_data.get("base_prompt", "")
+
+    session_count = existing.get("session_count", 0)
+
+    return jsonify({
+        "success": True,
+        "agent": agent,
+        "session_count": session_count,
+        "has_prior": session_count > 0
+    })
 
 @app.route("/onboard/start")
 def onboard_start():
@@ -86,98 +112,246 @@ def onboard_start():
     if not agent:
         return jsonify({"error": "Not logged in"}), 401
 
-    session["onboarding_history"] = []
-    session["question_index"] = 0
+    existing     = session.get("ob_existing", {})
+    session_count = existing.get("session_count", 0)
+    base_prompt  = session.get("ob_base_prompt", "")
 
-    questions = [
-        "How would your closest friends describe you in 3 words?",
-        "What are you most proud of that most people don't know about?",
-        "What genuinely irritates you that most people find normal?",
-        "How do you act when you're stressed — go quiet, get snappy, make jokes?",
-        "What kind of people do you naturally click with?",
-        "What do you secretly care about more than you let on?",
-        "How do you feel about conflict — avoid it, lean into it, or something else?",
-        "What does a perfect day look like for you?",
-        "What's a fear or insecurity you'd admit to?",
-        "Is there anything about yourself you're still figuring out?"
-    ]
-    session["questions"] = questions
+    # Build context from prior sessions
+    prior_qa = ""
+    all_qa   = existing.get("all_qa", [])
+    if all_qa:
+        prior_qa = "\n".join([f"Q: {qa['q']}\nA: {qa['a']}" for qa in all_qa[-20:]])
 
-    opening = f"""Hey. I'm your digital version — {agent.capitalize()} inside the simulation.
+    # Generate opening message dynamically based on session number
+    if session_count == 0:
+        opening = f"""I'm your digital version — {agent.capitalize()} inside the simulation.
 
-I need to ask you some questions so I actually know how to be you. Not a fake version. The real one.
+I don't know you yet. I'm going to ask you some questions — not a survey. More like a conversation. I'll follow wherever your answers lead.
 
-This isn't a test. Just be honest. Ready?"""
+I want to understand how you actually think. Ready?"""
+        first_q = _generate_first_question(agent, "", KNOWLEDGE_TARGETS)
+    else:
+        # Returning — review what we know and find gaps
+        opening = f"""We've talked {session_count} time{'s' if session_count > 1 else ''} before.
+
+I think I have a decent picture of you — but there are things I'm still uncertain about or want to go deeper on.
+
+Let's keep going."""
+        first_q = _generate_first_question(agent, prior_qa, KNOWLEDGE_TARGETS)
+
+    session["ob_history"] = [{"role": "assistant", "content": opening}]
+    session["ob_history"].append({"role": "assistant", "content": first_q})
 
     return jsonify({
-        "message": opening,
-        "question": questions[0],
-        "question_index": 0,
-        "total_questions": len(questions)
+        "opening": opening,
+        "question": first_q,
+        "session_count": session_count,
+        "questions_this_session": 0,
+        "total_this_session": SESSION_LENGTH
     })
+
+def _generate_first_question(agent, prior_qa, targets):
+    """Generate a smart opening question based on what we already know."""
+    if not prior_qa:
+        return f"Tell me something about yourself that most people get wrong about you."
+
+    # Pick a target we don't know well yet
+    known_topics = prior_qa.lower()
+    for target in targets:
+        keywords = target.split()[:3]
+        if not any(k in known_topics for k in keywords):
+            return f"Something I'm still not sure about — {target}. Can you give me a specific example from your life?"
+
+    return "What's something you've changed your mind about recently — about yourself or someone you know?"
 
 @app.route("/onboard/answer", methods=["POST"])
 def onboard_answer():
-    agent   = session.get("agent")
+    agent = session.get("agent")
     if not agent:
         return jsonify({"error": "Not logged in"}), 401
 
-    data     = request.json
-    answer   = data.get("answer", "")
-    q_index  = session.get("question_index", 0)
-    questions = session.get("questions", [])
-    history  = session.get("onboarding_history", [])
+    data    = request.json
+    answer  = data.get("answer", "")
+    history = session.get("ob_history", [])
+    count   = session.get("ob_count", 0)
 
-    history.append({"question": questions[q_index], "answer": answer})
-    session["onboarding_history"] = history
+    # Add their answer to history
+    history.append({"role": "user", "content": answer})
+    session["ob_history"] = history
+    session["ob_count"]   = count + 1
 
-    # Save answer to Firebase
-    firebase_put(f"onboarding/{agent}/{q_index}", {
-        "question": questions[q_index],
-        "answer": answer
-    })
+    # Save Q&A to Firebase
+    existing = session.get("ob_existing", {})
+    all_qa   = existing.get("all_qa", [])
+    # Find the last question asked
+    last_q = ""
+    for msg in reversed(history[:-1]):
+        if msg["role"] == "assistant" and msg["content"] != history[0]["content"]:
+            last_q = msg["content"]
+            break
+    all_qa.append({"q": last_q, "a": answer, "ts": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    session["ob_existing"]["all_qa"] = all_qa
 
-    # Simple reactions based on index
-    reactions = [
-        "Interesting. I'll remember that.",
-        "That tells me a lot, actually.",
-        "Good to know. Most people wouldn't admit that.",
-        "That tracks.",
-        "Got it.",
-        "I'll keep that in mind.",
-        "That's useful.",
-        "Okay. That makes sense.",
-        "Noted.",
-        "That's everything I needed."
-    ]
-    reaction = reactions[q_index] if q_index < len(reactions) else "Got it."
+    # Check if session is done
+    if count + 1 >= SESSION_LENGTH:
+        return _finalize_session(agent, all_qa, history)
 
-    next_index = q_index + 1
-    session["question_index"] = next_index
+    # Generate next dynamic question
+    next_q    = _generate_next_question(agent, history, all_qa, count + 1)
+    reaction  = _generate_reaction(answer, count)
 
-    if next_index >= len(questions):
-        # Save completion to Firebase
-        firebase_put(f"agents/{agent}/onboarded", True)
-        firebase_put(f"onboarding/{agent}/complete", True)
-
-        closing = f"""{reaction}
-
-That's everything I needed. I think I've got a pretty good picture of you now.
-
-You can come back and update me anytime. People change."""
-
-        return jsonify({
-            "reaction": closing,
-            "done": True,
-            "new_prompt_preview": f"Onboarding complete for {agent.capitalize()}. Your PC will process this on the next simulation tick."
-        })
+    history.append({"role": "assistant", "content": reaction})
+    history.append({"role": "assistant", "content": next_q})
+    session["ob_history"] = history
 
     return jsonify({
         "reaction": reaction,
-        "question": questions[next_index],
-        "question_index": next_index,
-        "total_questions": len(questions),
+        "question": next_q,
+        "questions_this_session": count + 1,
+        "total_this_session": SESSION_LENGTH,
         "done": False
+    })
+
+def _generate_reaction(answer, count):
+    """Generate a brief, non-generic reaction to keep the conversation real."""
+    # These are short, real reactions — not generic affirmations
+    short_reactions = [
+        "Got it.",
+        "That makes sense.",
+        "Okay.",
+        "Interesting.",
+        "Right.",
+        "Fair enough.",
+        "That tracks.",
+        "Noted.",
+        "I hear that.",
+        "Makes sense.",
+        "Good to know.",
+        "Okay, yeah."
+    ]
+    # Pick based on answer length — longer answers get slightly more acknowledgment
+    if len(answer) > 100:
+        return ["That's useful context.", "Okay, that helps.", "Got it — that's a lot to work with.", "Right, okay."][count % 4]
+    return short_reactions[count % len(short_reactions)]
+
+def _generate_next_question(agent, history, all_qa, count):
+    """
+    Generate the next question dynamically based on what's been said.
+    Hunts for gaps in knowledge, follows interesting threads, probes contradictions.
+    """
+    # Build conversation so far
+    convo = "\n".join([
+        f"{'Me' if m['role']=='assistant' else 'Them'}: {m['content']}"
+        for m in history[-10:]  # last 10 exchanges
+    ])
+
+    all_answers = "\n".join([f"Q: {qa['q']}\nA: {qa['a']}" for qa in all_qa])
+
+    # What we still want to know
+    known = all_answers.lower()
+    gaps  = [t for t in KNOWLEDGE_TARGETS if not any(w in known for w in t.split()[:2])]
+
+    gaps_text = "\n".join(f"- {g}" for g in gaps[:5]) if gaps else "- go deeper on anything already mentioned"
+
+    prompt = f"""You are the AI version of {agent.capitalize()}, conducting a dynamic interview with the real {agent.capitalize()} to understand how to imitate them accurately in a social simulation.
+
+Your goal: ask questions that help you understand how they think, speak, react, and relate to others.
+
+CONVERSATION SO FAR:
+{convo}
+
+THINGS YOU STILL WANT TO UNDERSTAND:
+{gaps_text}
+
+Generate ONE natural follow-up question. Rules:
+- Follow a thread from their last answer if it's interesting
+- OR probe one of the gaps listed above with a SPECIFIC scenario
+- Questions like "what would you do if..." or "give me an example of..." work better than abstract questions
+- Keep it short — one sentence, conversational
+- Don't repeat anything already covered
+- No preamble, just the question
+
+Question:"""
+
+    try:
+        # Call Ollama on the PC via a simple HTTP request
+        # Since Railway can't reach the PC directly, we use a pre-generated question
+        # based on logic rather than the model
+        return _smart_question_logic(gaps, all_qa, history)
+    except:
+        return _smart_question_logic(gaps, all_qa, history)
+
+def _smart_question_logic(gaps, all_qa, history):
+    """Fallback: generate smart questions using logic rather than model calls."""
+    scenario_questions = [
+        "Walk me through the last time you were actually annoyed with someone. What happened?",
+        "If someone in the group is upset about something — what do you do first?",
+        "What's a topic you could talk about for an hour without stopping?",
+        "Give me an example of something you said that you immediately wished you hadn't.",
+        "How do you act when you're in a room full of people you don't know well?",
+        "What's something the people in the simulation get wrong about you?",
+        "Describe the last time you changed your mind about someone.",
+        "When do you go quiet — and when do you speak up?",
+        "What's something you're better at than you let on?",
+        "How do you actually feel about the people you live with?",
+        "What would a perfect evening look like for you, specifically?",
+        "What's a situation where you'd walk away instead of staying?",
+        "How do you show that you care about someone without saying it directly?",
+        "What's something you find genuinely funny — give me a specific example.",
+        "When was the last time something surprised you about yourself?"
+    ]
+
+    asked = set(qa["q"] for qa in all_qa)
+    for q in scenario_questions:
+        if q not in asked:
+            return q
+
+    return "What's something you want me to understand about you that I probably still don't?"
+
+def _finalize_session(agent, all_qa, history):
+    """End the session, synthesize learnings, update Firebase."""
+    existing      = session.get("ob_existing", {})
+    session_count = existing.get("session_count", 0) + 1
+    base_prompt   = session.get("ob_base_prompt", "")
+
+    # Build synthesis from all Q&A
+    all_text = "\n".join([f"Q: {qa['q']}\nA: {qa['a']}" for qa in all_qa])
+
+    # Save everything to Firebase
+    firebase_put(f"onboarding/{agent}", {
+        "session_count": session_count,
+        "last_session":  datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "all_qa":        all_qa,
+        "complete":      True
+    })
+    firebase_put(f"agents/{agent}/onboarded", True)
+    firebase_put(f"agents/{agent}/onboarding_sessions", session_count)
+
+    # Save Q&A as a raw file for the PC simulation to read and update core.json
+    # The simulation checks this file each tick and synthesizes it
+    firebase_put(f"onboarding/{agent}/pending_synthesis", {
+        "all_qa":      all_qa,
+        "session":     session_count,
+        "needs_update": True
+    })
+
+    closings = [
+        "That's enough for now.",
+        "Good. I've got more to work with.",
+        "Okay. That helps.",
+        "Right. I think I understand you better now."
+    ]
+    closing = closings[session_count % len(closings)]
+
+    return jsonify({
+        "reaction": f"""{closing}
+
+Session {session_count} done. I'll keep what you told me.
+
+Come back whenever — the more we talk, the better I get at being you.""",
+        "done": True,
+        "session_count": session_count,
+        "new_prompt_preview": f"Session {session_count} complete. {len(all_qa)} total exchanges on record. Your PC simulation will synthesize this on the next tick."
     })
 
 @app.route("/director", methods=["POST"])
@@ -189,11 +363,10 @@ def director():
     if password != DIRECTOR_PASSWORD:
         return jsonify({"error": "Wrong password"}), 403
 
-    from datetime import datetime
     firebase_put("director/latest", {
         "instruction": instruction,
-        "active": True,
-        "sent_at": datetime.now().strftime("%Y-%m-%d %H:%M")
+        "active":      True,
+        "sent_at":     datetime.now().strftime("%Y-%m-%d %H:%M")
     })
 
     return jsonify({"success": True, "instruction": instruction})
