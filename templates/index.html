@@ -7,185 +7,260 @@
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{
-      --bg:#08080f;--surface:#0f0f1a;--border:#1a1a2e;
-      --accent:#7c6fff;--pink:#ff6fb0;--text:#e0e0e0;
-      --muted:#444;--green:#4fffb0;--red:#ff6b6b;--yellow:#ffd96b;
+      --bg:#0d0d14;
+      --surface:#13131f;
+      --surface2:#1a1a2e;
+      --border:#2a2a45;
+      --accent:#8b7fff;
+      --pink:#ff79c6;
+      --text:#f0f0ff;
+      --muted:#6060a0;
+      --green:#50fa7b;
+      --red:#ff5555;
+      --yellow:#f1fa8c;
+      --orange:#ffb86c;
+      --cyan:#8be9fd;
     }
     html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Courier New',monospace}
 
     /* ── TOP BAR ── */
     #topbar{
-      position:fixed;top:0;left:0;right:0;height:48px;
-      background:rgba(8,8,15,.92);border-bottom:1px solid var(--border);
+      position:fixed;top:0;left:0;right:0;height:52px;
+      background:rgba(13,13,20,.95);border-bottom:1px solid var(--border);
       display:flex;align-items:center;justify-content:space-between;
-      padding:0 1.5rem;z-index:300;backdrop-filter:blur(8px);
+      padding:0 1.5rem;z-index:300;backdrop-filter:blur(12px);
     }
-    .logo{font-size:.7rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
-    .logo span{color:var(--accent)}
-    .nav{display:flex;gap:1.2rem}
-    .nav a{font-size:.65rem;color:var(--muted);text-decoration:none;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;padding:.25rem .5rem;transition:color .2s}
-    .nav a:hover,.nav a.on{color:var(--accent)}
-    .meta{display:flex;gap:1.5rem;font-size:.65rem}
+    .logo{font-size:.72rem;letter-spacing:.3em;color:var(--muted);text-transform:uppercase}
+    .logo span{color:var(--accent);text-shadow:0 0 20px var(--accent)}
+    .nav{display:flex;gap:.3rem}
+    .nav a{
+      font-size:.65rem;color:var(--muted);text-decoration:none;
+      letter-spacing:.12em;text-transform:uppercase;cursor:pointer;
+      padding:.3rem .7rem;border:1px solid transparent;
+      transition:all .2s;border-radius:1px;
+    }
+    .nav a:hover{color:var(--text);border-color:var(--border)}
+    .nav a.on{color:var(--accent);border-color:var(--accent);background:rgba(139,127,255,.08)}
+    .meta{display:flex;gap:1.5rem;font-size:.63rem}
     .meta .lbl{color:var(--muted);margin-right:.25rem}
-    .dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
-    .dot.running{background:var(--green);animation:pulse 2s infinite}
+    .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+    .dot.running{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 2s infinite}
     .dot.sleeping{background:var(--yellow)}
-    .dot.stopped,dot.unknown{background:var(--red)}
+    .dot.stopped{background:var(--red)}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-    /* ── ZOOM CONTROLS ── */
-    #zoom-ctrl{
-      position:fixed;bottom:1.5rem;right:1.5rem;
-      display:flex;flex-direction:column;gap:.3rem;z-index:300;
-    }
+    /* ── ZOOM ── */
+    #zoom-ctrl{position:fixed;bottom:1.5rem;right:1.5rem;display:flex;flex-direction:column;gap:.3rem;z-index:300}
     .z-btn{
-      width:36px;height:36px;background:var(--surface);border:1px solid var(--border);
+      width:38px;height:38px;background:var(--surface);border:1px solid var(--border);
       color:var(--text);font-size:1.1rem;cursor:pointer;
       display:flex;align-items:center;justify-content:center;
-      transition:border-color .2s;user-select:none;
+      transition:all .2s;
     }
-    .z-btn:hover{border-color:var(--accent)}
+    .z-btn:hover{border-color:var(--accent);color:var(--accent)}
 
     /* ── MAP CANVAS ── */
-    #map-canvas{
-      position:fixed;top:48px;left:0;right:0;bottom:0;
-      overflow:hidden;cursor:grab;
-    }
+    #map-canvas{position:fixed;top:52px;left:0;right:0;bottom:0;overflow:hidden;cursor:grab}
     #map-canvas.dragging{cursor:grabbing}
-    #map-world{
-      position:absolute;
-      transform-origin:0 0;
-      will-change:transform;
-    }
+    #map-world{position:absolute;transform-origin:0 0;will-change:transform}
 
     /* ── ROOMS ── */
     .room{
-      position:absolute;
-      width:420px;
+      position:absolute;width:460px;
       background:var(--surface);
       border:1px solid var(--border);
-      border-radius:2px;
-      padding:1.4rem;
-      transition:border-color .3s;
-      user-select:none;
+      padding:1.6rem;
+      transition:border-color .3s,box-shadow .3s;
     }
-    .room.occupied{border-color:#252540}
+    .room.occupied{
+      border-color:#3a3a65;
+      box-shadow:0 0 30px rgba(139,127,255,.06);
+    }
     .room-label{
-      font-size:.65rem;letter-spacing:.2em;text-transform:uppercase;
-      color:var(--muted);margin-bottom:.6rem;
+      font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;
+      color:var(--accent);margin-bottom:.5rem;
+      text-shadow:0 0 15px rgba(139,127,255,.4);
     }
-    .room-desc{
-      font-size:.82rem;color:#2a2a48;line-height:1.6;
-      margin-bottom:1.2rem;
-    }
-    .room-objects{margin-bottom:1rem}
-    .obj{font-size:.7rem;color:#222238;padding:.2rem 0;border-bottom:1px solid #111120}
-    .obj .obj-name{color:#333350}
+    .room-desc{font-size:.8rem;color:var(--muted);line-height:1.6;margin-bottom:1rem}
+    .room-objects{margin-bottom:1rem;border-top:1px solid var(--border);padding-top:.7rem}
+    .obj{font-size:.68rem;color:#3a3a58;padding:.18rem 0}
+    .obj-name{color:#4a4a70}
+    .connector-line{position:absolute;background:var(--border);z-index:0}
+    .connector-line.h{height:1px}
 
-    /* ── CONNECTOR ── */
-    .connector-line{
-      position:absolute;
-      background:#141420;
-      z-index:0;
-    }
-    .connector-line.h{height:2px}
-    .connector-line.v{width:2px}
-
-    /* ── TOKENS ── */
-    .tokens{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.4rem;position:relative;z-index:2}
+    /* ── AVATAR TOKENS IN ROOM ── */
+    .tokens{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:.8rem;position:relative;z-index:2}
     .token{
-      display:flex;align-items:center;gap:.5rem;
-      background:var(--bg);border:1px solid var(--border);
-      padding:.4rem .7rem;cursor:pointer;
-      transition:border-color .2s,transform .15s;
-      border-radius:1px;
+      cursor:pointer;
+      transition:transform .15s,filter .15s;
+      position:relative;
     }
-    .token:hover{transform:scale(1.04)}
-    .token.sel{border-color:var(--accent)!important;background:#0d0d1a}
-    .tok-img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid transparent}
-    .tok-letter{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:bold;flex-shrink:0}
-    .tok-name{font-size:.8rem;font-weight:bold;line-height:1.2}
-    .tok-act{font-size:.68rem;color:var(--muted);max-width:130px;line-height:1.3}
+    .token:hover{transform:scale(1.08);filter:brightness(1.15)}
+    .token.sel{filter:brightness(1.2)}
+
+    .tok-av{
+      width:72px;height:72px;border-radius:50%;
+      object-fit:cover;
+      border:3px solid transparent;
+      display:block;
+      transition:border-color .2s,box-shadow .2s;
+    }
+    .tok-av:hover{box-shadow:0 0 20px rgba(255,255,255,.2)}
+
+    .tok-letter{
+      width:72px;height:72px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.4rem;font-weight:bold;
+      border:3px solid transparent;
+      transition:border-color .2s;
+    }
+
+    .tok-name-badge{
+      position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+      background:var(--bg);border:1px solid var(--border);
+      padding:.1rem .4rem;font-size:.6rem;white-space:nowrap;
+      color:var(--text);letter-spacing:.05em;
+    }
 
     /* ── SIDE PANEL ── */
     #panel{
-      position:fixed;right:0;top:48px;bottom:0;width:300px;
+      position:fixed;right:0;top:52px;bottom:0;width:320px;
       background:var(--surface);border-left:1px solid var(--border);
-      padding:1.4rem;overflow-y:auto;
+      padding:1.5rem;overflow-y:auto;
       transform:translateX(100%);transition:transform .3s ease;z-index:250;
     }
     #panel.open{transform:translateX(0)}
-    #p-close{position:absolute;top:.9rem;right:.9rem;color:var(--muted);cursor:pointer;font-size:1rem}
+    #p-close{position:absolute;top:1rem;right:1rem;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1}
     #p-close:hover{color:var(--text)}
-    .pan-av-wrap{margin-bottom:.8rem}
-    .pan-img{width:56px;height:56px;border-radius:50%;object-fit:cover}
-    .pan-letter{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:bold}
-    .pan-name{font-size:1rem;font-weight:bold;margin-bottom:.15rem}
-    .pan-act{font-size:.7rem;color:var(--muted);margin-bottom:.8rem}
-    .think{background:var(--bg);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.74rem;color:#aaa;line-height:1.5;font-style:italic;margin-bottom:.8rem}
-    .stat{display:flex;justify-content:space-between;font-size:.72rem;padding:.28rem 0;border-bottom:1px solid var(--border)}
-    .stat .lbl{color:var(--muted)}
-    .sec{font-size:.58rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .5rem}
-    .rel{margin-bottom:.75rem}
-    .rel-h{display:flex;justify-content:space-between;font-size:.68rem;margin-bottom:.22rem}
-    .rel-s{color:var(--muted);font-size:.6rem}
-    .br{display:flex;gap:3px;align-items:center;margin-bottom:2px}
-    .bl{font-size:.56rem;color:var(--muted);width:52px;flex-shrink:0}
-    .bt{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
-    .bf{height:100%;border-radius:2px;transition:width .5s}
-    .bf.t{background:var(--accent)}.bf.f{background:var(--green)}.bf.r{background:var(--pink)}.bf.v{background:var(--red)}
 
-    /* ── OVERLAY PAGES ── */
-    .overlay{
-      position:fixed;top:48px;left:0;right:0;bottom:0;
-      background:var(--bg);z-index:200;overflow-y:auto;padding:2rem;
+    .pan-av{width:70px;height:70px;border-radius:50%;object-fit:cover;margin-bottom:.9rem;border:3px solid var(--border)}
+    .pan-letter{width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:bold;margin-bottom:.9rem}
+    .pan-name{font-size:1.1rem;font-weight:bold;margin-bottom:.15rem}
+    .pan-mood{font-size:.75rem;margin-bottom:.8rem;padding:.3rem .6rem;display:inline-block;border:1px solid var(--border)}
+
+    .think-box{
+      background:var(--bg);border-left:3px solid var(--accent);
+      padding:.6rem .8rem;font-size:.78rem;color:#c0c0e0;
+      line-height:1.5;font-style:italic;margin-bottom:1rem;
+    }
+
+    .sec{font-size:.6rem;text-transform:uppercase;letter-spacing:.15em;color:var(--muted);margin:1rem 0 .6rem;padding-bottom:.3rem;border-bottom:1px solid var(--border)}
+
+    /* RELATIONSHIP BARS */
+    .rel{margin-bottom:1rem}
+    .rel-name{font-size:.8rem;font-weight:bold;margin-bottom:.4rem;color:var(--cyan)}
+    .rel-status{font-size:.65rem;color:var(--muted);margin-bottom:.4rem}
+    .bar-row{display:flex;gap:.5rem;align-items:center;margin-bottom:.3rem}
+    .bar-label{font-size:.62rem;color:var(--muted);width:58px;flex-shrink:0}
+    .bar-track{flex:1;height:6px;background:#1a1a30;border-radius:3px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+    .bar-fill.t{background:var(--accent)}
+    .bar-fill.f{background:var(--green)}
+    .bar-fill.r{background:var(--pink)}
+    .bar-fill.v{background:var(--red)}
+    .bar-num{font-size:.62rem;color:var(--text);width:28px;text-align:right;flex-shrink:0}
+
+    /* RELATIONSHIP DELTA BOX */
+    .delta-box{
+      background:var(--bg);border:1px solid var(--border);
+      padding:.6rem .8rem;margin-top:.6rem;font-size:.7rem;
+    }
+    .delta-title{color:var(--muted);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.4rem}
+    .delta-row{display:flex;justify-content:space-between;padding:.15rem 0}
+    .delta-pos{color:var(--green)}
+    .delta-neg{color:var(--red)}
+    .delta-zero{color:var(--muted)}
+
+    /* ── TICK POPUP ── */
+    #tick-popup{
+      position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
+      width:560px;max-width:90vw;
+      background:var(--surface);border:1px solid var(--border);
+      z-index:400;
+      box-shadow:0 8px 40px rgba(0,0,0,.6);
       display:none;
     }
+    #tick-popup.show{display:block}
+    #tp-header{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:.7rem 1rem;border-bottom:1px solid var(--border);
+      background:var(--surface2);
+    }
+    #tp-title{font-size:.7rem;letter-spacing:.15em;text-transform:uppercase;color:var(--accent)}
+    #tp-close{color:var(--muted);cursor:pointer;font-size:1rem}
+    #tp-close:hover{color:var(--text)}
+    #tp-body{padding:1rem;max-height:320px;overflow-y:auto}
+    .tp-conv{margin-bottom:1.2rem}
+    .tp-conv-header{font-size:.62rem;color:var(--muted);margin-bottom:.5rem;letter-spacing:.08em}
+    .tp-line{display:flex;align-items:flex-start;gap:.6rem;margin-bottom:.5rem}
+    .tp-line.right{flex-direction:row-reverse}
+    .tp-av{width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid var(--border)}
+    .tp-av-letter{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:bold;flex-shrink:0}
+    .tp-bubble{
+      background:var(--surface2);border:1px solid var(--border);
+      padding:.4rem .7rem;font-size:.78rem;line-height:1.5;
+      max-width:380px;
+    }
+    .tp-line.right .tp-bubble{background:#1a1a35;border-color:#2a2a50}
+
+    /* ── OVERLAYS ── */
+    .overlay{position:fixed;top:52px;left:0;right:0;bottom:0;background:var(--bg);z-index:200;overflow-y:auto;padding:2rem;display:none}
     .overlay.on{display:block}
-    .pg-t{font-size:1.1rem;font-weight:bold;margin-bottom:.3rem}
-    .pg-s{font-size:.7rem;color:var(--muted);margin-bottom:1.3rem}
+    .pg-t{font-size:1.1rem;font-weight:bold;margin-bottom:.3rem;color:var(--text)}
+    .pg-s{font-size:.7rem;color:var(--muted);margin-bottom:1.5rem}
 
-    .conv{border-left:2px solid var(--border);padding:.6rem .9rem;margin-bottom:.7rem;max-width:700px}
-    .conv:hover{border-color:var(--accent)}
-    .conv-m{font-size:.6rem;color:var(--muted);margin-bottom:.35rem}
-    .conv-l{font-size:.8rem;line-height:1.55;padding:.1rem 0}
-    .conv-l .spk{color:var(--accent);font-weight:bold;margin-right:.3rem}
+    /* CONV LOG */
+    .conv-entry{border-left:2px solid var(--border);padding:.8rem 1rem;margin-bottom:1rem;max-width:700px;transition:border-color .2s}
+    .conv-entry:hover{border-color:var(--accent)}
+    .conv-timestamp{font-size:.65rem;color:var(--accent);margin-bottom:.5rem;letter-spacing:.08em}
+    .conv-participants{font-size:.62rem;color:var(--muted);margin-bottom:.6rem}
+    .conv-line{display:flex;align-items:flex-start;gap:.5rem;margin-bottom:.4rem}
+    .conv-line.right{flex-direction:row-reverse}
+    .conv-av{width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0}
+    .conv-av-letter{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:bold;flex-shrink:0}
+    .conv-text{font-size:.78rem;line-height:1.5;color:var(--text)}
+    .conv-line.right .conv-text{text-align:right}
 
-    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.1rem;margin-bottom:1.3rem;max-width:500px}
-    .dir-t{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.7rem}
-    .drow{display:flex;gap:.4rem;margin-bottom:.4rem}
-    .drow input,.drow textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;outline:none}
+    /* DIRECTOR */
+    .dir-box{background:var(--surface);border:1px solid var(--accent);padding:1.2rem;margin-bottom:1.3rem;max-width:500px}
+    .dir-t{font-size:.65rem;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:.8rem}
+    .drow{display:flex;gap:.4rem;margin-bottom:.5rem}
+    .drow input,.drow textarea{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.82rem;outline:none}
     .drow input:focus,.drow textarea:focus{border-color:var(--accent)}
+    .dir-examples{background:var(--surface);border:1px solid var(--border);padding:1rem;max-width:500px}
+    .dir-ex-t{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.6rem}
+    .dir-ex{font-size:.75rem;color:#5050a0;padding:.2rem 0;cursor:pointer;transition:color .2s}
+    .dir-ex:hover{color:var(--accent)}
 
+    /* ONBOARD */
     .ob-form{display:flex;flex-direction:column;gap:.7rem;max-width:260px}
-    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.62rem;font-family:inherit;font-size:.86rem;outline:none}
+    .ob-form input{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.65rem;font-family:inherit;font-size:.88rem;outline:none}
     .ob-form input:focus{border-color:var(--accent)}
-    .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem;max-width:500px}
+    .prog{width:100%;height:2px;background:var(--border);margin-bottom:1rem;max-width:520px}
     .prog-f{height:100%;background:var(--accent);transition:width .4s}
-    .chatlog{max-height:300px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem;max-width:500px}
+    .chatlog{max-height:300px;overflow-y:auto;margin-bottom:.9rem;display:flex;flex-direction:column;gap:.65rem;max-width:520px}
     .msg{display:flex;flex-direction:column;gap:.12rem}
     .msg.ai .sp{font-size:.6rem;color:var(--accent);text-transform:uppercase;letter-spacing:.1em}
     .msg.hu .sp{font-size:.6rem;color:var(--muted);text-transform:uppercase;text-align:right}
-    .msg.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .7rem;font-size:.8rem;line-height:1.5}
-    .msg.hu .bb{background:#0d0d1a;border-right:2px solid var(--border);padding:.5rem .7rem;font-size:.8rem;line-height:1.5;text-align:right}
-    .qbox{background:var(--surface);border:1px solid var(--border);padding:.7rem;font-size:.8rem;line-height:1.5;color:#ccc;margin-bottom:.7rem;max-width:500px}
-    .in-row{display:flex;gap:.4rem;max-width:500px}
-    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.52rem;font-family:inherit;font-size:.8rem;resize:none;height:60px;outline:none}
+    .msg.ai .bb{background:var(--surface);border-left:2px solid var(--accent);padding:.5rem .8rem;font-size:.82rem;line-height:1.5}
+    .msg.hu .bb{background:var(--surface2);border-right:2px solid var(--border);padding:.5rem .8rem;font-size:.82rem;line-height:1.5;text-align:right}
+    .qbox{background:var(--surface);border:1px solid var(--border);padding:.8rem;font-size:.82rem;line-height:1.5;color:#c0c0e0;margin-bottom:.8rem;max-width:520px}
+    .in-row{display:flex;gap:.4rem;max-width:520px}
+    .in-row textarea{flex:1;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:.55rem;font-family:inherit;font-size:.82rem;resize:none;height:65px;outline:none}
     .in-row textarea:focus{border-color:var(--accent)}
-    .err{color:var(--red);font-size:.7rem;min-height:.9rem}
-    .typing{display:none;gap:4px;align-items:center;padding:.25rem 0}
+    .err{color:var(--red);font-size:.72rem;min-height:.9rem}
+    .typing{display:none;gap:4px;align-items:center;padding:.3rem 0}
     .typing span{width:5px;height:5px;background:var(--accent);border-radius:50%;animation:bounce 1s infinite}
     .typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
     @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
     .done-box{text-align:center;padding:2rem;max-width:500px}
-    .done-i{font-size:1.8rem;margin-bottom:.6rem}
-    .done-t{font-size:1rem;color:var(--accent);margin-bottom:.6rem}
-    .done-m{color:var(--muted);line-height:1.6;margin-bottom:.9rem;font-size:.8rem}
-    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.7rem;font-size:.7rem;color:#aaa;line-height:1.6;margin-bottom:.9rem}
-
-    .btn{background:var(--accent);border:none;color:#fff;padding:.52rem 1rem;font-family:inherit;font-size:.78rem;cursor:pointer}
+    .done-i{font-size:2rem;margin-bottom:.7rem}
+    .done-t{font-size:1.1rem;color:var(--accent);margin-bottom:.7rem}
+    .done-m{color:var(--muted);line-height:1.6;margin-bottom:1rem;font-size:.82rem}
+    .preview-b{background:var(--surface);border-left:2px solid var(--accent);padding:.8rem;font-size:.72rem;color:#aaa;line-height:1.6;margin-bottom:1rem}
+    .btn{background:var(--accent);border:none;color:#fff;padding:.55rem 1.1rem;font-family:inherit;font-size:.8rem;cursor:pointer;transition:opacity .2s}
     .btn:hover{opacity:.85}
-    .empty{color:var(--muted);font-size:.78rem;padding:.8rem 0}
+    .empty{color:var(--muted);font-size:.78rem;padding:1rem 0}
   </style>
 </head>
 <body>
@@ -213,44 +288,58 @@
   <div id="map-world"></div>
 </div>
 
-<!-- ZOOM CONTROLS -->
+<!-- ZOOM -->
 <div id="zoom-ctrl">
-  <div class="z-btn" onclick="zoom(0.15)">+</div>
-  <div class="z-btn" onclick="zoom(-0.15)">−</div>
-  <div class="z-btn" onclick="resetView()" style="font-size:.55rem;letter-spacing:.05em">RST</div>
+  <div class="z-btn" onclick="zoom(.15)">+</div>
+  <div class="z-btn" onclick="zoom(-.15)">−</div>
+  <div class="z-btn" onclick="resetView()" style="font-size:.5rem;letter-spacing:.04em">RST</div>
 </div>
 
 <!-- SIDE PANEL -->
 <div id="panel">
   <div id="p-close" onclick="closePanel()">✕</div>
-  <div class="pan-av-wrap" id="p-av"></div>
+  <div id="p-av-wrap"></div>
   <div class="pan-name" id="p-name"></div>
-  <div class="pan-act"  id="p-act"></div>
-  <div class="think"    id="p-think"></div>
-  <div class="stat"><span class="lbl">mood</span><span id="p-mood"></span></div>
-  <div class="stat"><span class="lbl">location</span><span id="p-loc"></span></div>
-  <div class="stat"><span class="lbl">chats today</span><span id="p-chats"></span></div>
+  <div class="pan-mood" id="p-mood"></div>
+  <div class="think-box" id="p-think"></div>
   <div class="sec">Relationships</div>
   <div id="p-rels"></div>
 </div>
 
+<!-- TICK POPUP -->
+<div id="tick-popup">
+  <div id="tp-header">
+    <div id="tp-title">Latest Conversations</div>
+    <div id="tp-close" onclick="closeTickPopup()">✕</div>
+  </div>
+  <div id="tp-body"></div>
+</div>
+
 <!-- CONVERSATIONS OVERLAY -->
 <div class="overlay" id="convs-overlay">
-  <div class="pg-t">Conversations</div>
-  <div class="pg-s">Everything said in the simulation</div>
+  <div class="pg-t">Conversation Log</div>
+  <div class="pg-s">Full history of everything said</div>
   <div id="conv-wrap"><div class="empty">No conversations yet...</div></div>
 </div>
 
 <!-- DIRECTOR OVERLAY -->
 <div class="overlay" id="dir-overlay">
   <div class="pg-t">Director</div>
-  <div class="pg-s">Shape what happens today</div>
+  <div class="pg-s">Shape what happens on the next tick</div>
   <div class="dir-box">
     <div class="dir-t">◈ Send Instruction</div>
     <div class="drow"><input type="password" id="d-pw" placeholder="director password"/></div>
-    <div class="drow"><textarea id="d-inst" style="height:65px" placeholder="e.g. 'Joseph gets bad news today'"></textarea></div>
+    <div class="drow"><textarea id="d-inst" style="height:70px" placeholder="What happens today?"></textarea></div>
     <div class="drow"><button class="btn" onclick="sendDir()">Send →</button></div>
     <div class="err" id="d-err"></div>
+  </div>
+  <div class="dir-examples">
+    <div class="dir-ex-t">Example instructions</div>
+    <div class="dir-ex" onclick="setDir(this)">Joseph gets some bad news about his company</div>
+    <div class="dir-ex" onclick="setDir(this)">Evie is in an unusually great mood today</div>
+    <div class="dir-ex" onclick="setDir(this)">There's a thunderstorm keeping everyone inside</div>
+    <div class="dir-ex" onclick="setDir(this)">A mysterious package arrives at the door</div>
+    <div class="dir-ex" onclick="setDir(this)">Someone had a nightmare last night and is unsettled</div>
   </div>
 </div>
 
@@ -267,9 +356,12 @@
     </div>
   </div>
   <div id="ob-chat" style="display:none">
-    <div style="display:flex;align-items:center;gap:.7rem;margin-bottom:1rem">
+    <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem">
       <div id="ob-av2"></div>
-      <div><div style="font-weight:bold;font-size:.9rem" id="ob-agn"></div><div style="font-size:.62rem;color:var(--muted)">digital self</div></div>
+      <div>
+        <div style="font-weight:bold;font-size:.95rem" id="ob-agn"></div>
+        <div style="font-size:.62rem;color:var(--muted)">digital self — onboarding</div>
+      </div>
     </div>
     <div class="prog"><div class="prog-f" id="ob-prog" style="width:0%"></div></div>
     <div class="chatlog" id="ob-msgs"></div>
@@ -291,69 +383,49 @@
 
 <script>
 // ── State ──────────────────────────────────────────────────────────────────
-let sel=null, obAgent="", obTotal=0, cache={};
+let sel=null, obAgent="", obTotal=0, cache={}, lastTickCount=0;
 let tx=120, ty=80, scale=1;
 let dragging=false, lastX=0, lastY=0;
-const C={joseph:"#7c6fff",evie:"#ff6fb0",martin:"#4fffb0"};
-const gc=n=>C[n?.toLowerCase()]||"#7c6fff";
+const C={joseph:"#8b7fff", evie:"#ff79c6", martin:"#50fa7b"};
+const gc=n=>C[n?.toLowerCase()]||"#8b7fff";
 
 // ── Drag & Zoom ────────────────────────────────────────────────────────────
-const canvas = document.getElementById("map-canvas");
-const world  = document.getElementById("map-world");
+const canvas=document.getElementById("map-canvas");
+const world=document.getElementById("map-world");
 
-function applyTransform(){
-  world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`;
-}
+function applyT(){world.style.transform=`translate(${tx}px,${ty}px) scale(${scale})`}
 
 canvas.addEventListener("mousedown",e=>{
   if(e.target.closest(".token")||e.target.closest(".z-btn")) return;
-  dragging=true; lastX=e.clientX; lastY=e.clientY;
-  canvas.classList.add("dragging");
+  dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.classList.add("dragging");
 });
 window.addEventListener("mousemove",e=>{
   if(!dragging) return;
-  tx+=e.clientX-lastX; ty+=e.clientY-lastY;
-  lastX=e.clientX; lastY=e.clientY;
-  applyTransform();
+  tx+=e.clientX-lastX;ty+=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;applyT();
 });
-window.addEventListener("mouseup",()=>{ dragging=false; canvas.classList.remove("dragging"); });
-
+window.addEventListener("mouseup",()=>{dragging=false;canvas.classList.remove("dragging")});
 canvas.addEventListener("wheel",e=>{
   e.preventDefault();
-  const delta = e.deltaY>0?-0.1:0.1;
-  const rect  = canvas.getBoundingClientRect();
-  const mx    = e.clientX - rect.left;
-  const my    = e.clientY - rect.top;
-  const prev  = scale;
-  scale = Math.max(0.3, Math.min(3, scale+delta));
-  tx = mx - (mx-tx)*(scale/prev);
-  ty = my - (my-ty)*(scale/prev);
-  applyTransform();
-},{passive:false});
-
-// Touch support
-let lastTouchDist=0;
-canvas.addEventListener("touchstart",e=>{
-  if(e.touches.length===1){dragging=true;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;}
-  if(e.touches.length===2) lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-});
-canvas.addEventListener("touchmove",e=>{
-  e.preventDefault();
-  if(e.touches.length===1&&dragging){tx+=e.touches[0].clientX-lastX;ty+=e.touches[0].clientY-lastY;lastX=e.touches[0].clientX;lastY=e.touches[0].clientY;applyTransform();}
-  if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);scale=Math.max(.3,Math.min(3,scale*(d/lastTouchDist)));lastTouchDist=d;applyTransform();}
-},{passive:false});
-canvas.addEventListener("touchend",()=>{dragging=false;});
-
-function zoom(delta){
-  const cx=canvas.offsetWidth/2, cy=canvas.offsetHeight/2;
+  const d=e.deltaY>0?-.1:.1;
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
   const prev=scale;
-  scale=Math.max(.3,Math.min(3,scale+delta));
-  tx=cx-(cx-tx)*(scale/prev);
-  ty=cy-(cy-ty)*(scale/prev);
-  applyTransform();
-}
+  scale=Math.max(.3,Math.min(3,scale+d));
+  tx=mx-(mx-tx)*(scale/prev);ty=my-(my-ty)*(scale/prev);applyT();
+},{passive:false});
 
-function resetView(){tx=120;ty=80;scale=1;applyTransform();}
+function zoom(d){
+  const cx=canvas.offsetWidth/2,cy=canvas.offsetHeight/2,prev=scale;
+  scale=Math.max(.3,Math.min(3,scale+d));
+  tx=cx-(cx-tx)*(scale/prev);ty=cy-(cy-ty)*(scale/prev);applyT();
+}
+function resetView(){tx=120;ty=80;scale=1;applyT()}
+
+// ── Avatar helper ──────────────────────────────────────────────────────────
+function avImg(aid, size, extraStyle=""){
+  const col=gc(aid);
+  return `<img src="/static/${aid}.png" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;${extraStyle}" onerror="this.outerHTML='<div style=\\'width:${size}px;height:${size}px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:${Math.floor(size*.4)}px;font-weight:bold\\'>${aid[0].toUpperCase()}</div>'"/>`;
+}
 
 // ── Nav ────────────────────────────────────────────────────────────────────
 function showMap(){
@@ -361,7 +433,6 @@ function showMap(){
   document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
   document.getElementById("n-map").classList.add("on");
 }
-
 function showOverlay(name){
   document.querySelectorAll(".overlay").forEach(o=>o.classList.remove("on"));
   document.querySelectorAll(".nav a").forEach(a=>a.classList.remove("on"));
@@ -381,67 +452,68 @@ async function loadMap(){
     document.getElementById("m-status").innerHTML=`<span class="dot ${dc}"></span>${s}`;
     document.getElementById("m-tick").textContent=meta.tick_count||"—";
     document.getElementById("m-upd").textContent=meta.last_tick||"—";
+
+    // Check for new tick conversations
+    const tc=meta.tick_count||0;
+    if(tc>lastTickCount && lastTickCount>0){
+      showTickPopup(d?.conversations||{}, tc);
+    }
+    lastTickCount=tc;
+
     const wd=d?.world;
-    if(!wd?.rooms){world.innerHTML='<div style="color:var(--muted);font-size:.8rem;padding:2rem">Waiting for simulation...</div>';return;}
+    if(!wd?.rooms){
+      world.innerHTML='<div style="color:var(--muted);font-size:.85rem;padding:3rem">Waiting for simulation to start...</div>';
+      return;
+    }
     buildMap(wd,d?.agents||{});
-  }catch(e){console.error(e);}
+  }catch(e){console.error(e)}
 }
 
 function buildMap(wd,agents){
   const rooms=wd.rooms, pos=wd.agent_positions||{};
   const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
-
-  // Room dimensions & layout
-  const RW=440, RH=320, GAP=80, CONN=40;
-  const totalW=sorted.length*RW+(sorted.length-1)*(GAP+CONN);
+  const RW=460,RH=340,GAP=90;
   let html="";
 
   sorted.forEach(([rid,room],i)=>{
-    const x=i*(RW+GAP+CONN);
-    const y=0;
+    const x=i*(RW+GAP);
     const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
 
-    // Connector line
+    // Connector
     if(i<sorted.length-1){
-      html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP+CONN}px"></div>`;
+      html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP}px"></div>`;
     }
 
-    // Room tile
-    html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:${y}px;width:${RW}px;min-height:${RH}px">`;
+    // Room
+    html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:0;width:${RW}px;min-height:${RH}px">`;
     html+=`<div class="room-label">${room.name}</div>`;
     html+=`<div class="room-desc">${room.description}</div>`;
 
-    // Objects
     if(room.objects?.length){
       html+=`<div class="room-objects">`;
-      room.objects.forEach(o=>{
+      room.objects.slice(0,2).forEach(o=>{
         html+=`<div class="obj"><span class="obj-name">${o.name}</span> — ${o.appearance}</div>`;
       });
       html+=`</div>`;
     }
 
-    // Agent tokens
+    // Tokens — just avatar + name badge
     html+=`<div class="tokens">`;
     here.forEach(aid=>{
-      const ag=agents[aid]?.status||agents[aid]||{};
       const col=gc(aid);
       const isSel=sel===aid;
-      html+=`<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')" style="border-color:${isSel?col:""}">
-        <img class="tok-img" src="/static/${aid}.png" style="border-color:${col}" onerror="this.style.display='none';this.nextSibling.style.display='flex'"/>
-        <div class="tok-letter" style="background:${col};display:none">${aid[0].toUpperCase()}</div>
-        <div>
-          <div class="tok-name" style="color:${col}">${aid}</div>
-          <div class="tok-act">${ag.activity||"..."}</div>
-        </div>
-      </div>`;
+      html+=`<div class="token ${isSel?"sel":""}" onclick="pick('${aid}')">`;
+      html+=`<img class="tok-av" src="/static/${aid}.png" style="border-color:${isSel?col:"var(--border)"};${isSel?`box-shadow:0 0 18px ${col}40`:""}" onerror="this.style.display='none';this.nextSibling.style.display='flex'"/>`;
+      html+=`<div class="tok-letter" style="background:${col};display:none;border-color:${isSel?col:"var(--border)"}">${aid[0].toUpperCase()}</div>`;
+      html+=`<div class="tok-name-badge" style="border-color:${isSel?col:"var(--border)"}; color:${isSel?col:"var(--text)"}">${aid}</div>`;
+      html+=`</div>`;
     });
-    html+=`</div>`;
-    html+=`</div>`;
+    html+=`</div></div>`;
   });
 
   world.innerHTML=html;
-  world.style.width=totalW+"px";
-  world.style.height=(RH+100)+"px";
+  world.style.width=(sorted.length*(RW+GAP))+"px";
+  world.style.height=(RH+60)+"px";
 
   if(sel) refreshPanel(sel,agents);
 }
@@ -459,44 +531,120 @@ function refreshPanel(aid,agents){
   const ag=agents[aid]?.status||agents[aid]||{};
   const lt=agents[aid]?.relationships||{};
   const col=gc(aid);
-  document.getElementById("p-av").innerHTML=`<img class="pan-img" src="/static/${aid}.png" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
+
+  // Avatar
+  document.getElementById("p-av-wrap").innerHTML=`<img class="pan-av" src="/static/${aid}.png" style="border-color:${col};box-shadow:0 0 20px ${col}30" onerror="this.outerHTML='<div class=\\'pan-letter\\' style=\\'background:${col}\\'>${aid[0].toUpperCase()}</div>'"/>`;
   document.getElementById("p-name").textContent=aid;
-  document.getElementById("p-act").textContent=ag.activity||"...";
+  document.getElementById("p-name").style.color=col;
+
+  // Mood badge
+  const mood=ag.mood||"neutral";
+  document.getElementById("p-mood").textContent=mood;
+  document.getElementById("p-mood").style.borderColor=col;
+  document.getElementById("p-mood").style.color=col;
+
+  // Thought
   document.getElementById("p-think").textContent=ag.thought?`"${ag.thought}"`:"...";
-  document.getElementById("p-mood").textContent=ag.mood||"—";
-  document.getElementById("p-loc").textContent=ag.location||"—";
-  document.getElementById("p-chats").textContent=ag.conversations_today||0;
+
+  // Relationships
   let rh="";
   for(const [o,r] of Object.entries(lt)){
-    rh+=`<div class="rel">
-      <div class="rel-h"><span>${o}</span><span class="rel-s">${r.status||r.current_status||"friend"}</span></div>
-      <div class="br"><span class="bl">trust</span><div class="bt"><div class="bf t" style="width:${r.trust||0}%"></div></div></div>
-      <div class="br"><span class="bl">friendship</span><div class="bt"><div class="bf f" style="width:${r.friendship||0}%"></div></div></div>
-      <div class="br"><span class="bl">romantic</span><div class="bt"><div class="bf r" style="width:${r.romantic||0}%"></div></div></div>
-      <div class="br"><span class="bl">rivalry</span><div class="bt"><div class="bf v" style="width:${r.rivalry||0}%"></div></div></div>
-    </div>`;
+    const ocol=gc(o);
+    rh+=`<div class="rel">`;
+    rh+=`<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem">`;
+    rh+=avImg(o,28,`border:2px solid ${ocol}`);
+    rh+=`<span class="rel-name" style="color:${ocol}">${o}</span>`;
+    rh+=`<span class="rel-status">${r.status||r.current_status||"friend"}</span>`;
+    rh+=`</div>`;
+    const bars=[
+      {label:"trust",   cls:"t", val:r.trust||0},
+      {label:"friends", cls:"f", val:r.friendship||0},
+      {label:"romantic",cls:"r", val:r.romantic||0},
+      {label:"rivalry", cls:"v", val:r.rivalry||0},
+    ];
+    bars.forEach(b=>{
+      rh+=`<div class="bar-row">
+        <span class="bar-label">${b.label}</span>
+        <div class="bar-track"><div class="bar-fill ${b.cls}" style="width:${b.val}%"></div></div>
+        <span class="bar-num">${b.val}</span>
+      </div>`;
+    });
+    rh+=`</div>`;
   }
   document.getElementById("p-rels").innerHTML=rh||'<div class="empty">No relationships yet</div>';
 }
 
-function closePanel(){sel=null;document.getElementById("panel").classList.remove("open");buildMap(cache?.world||{},cache?.agents||{});}
+function closePanel(){sel=null;document.getElementById("panel").classList.remove("open");buildMap(cache?.world||{},cache?.agents||{})}
 
-// ── Convs ──────────────────────────────────────────────────────────────────
+// ── Tick Popup ─────────────────────────────────────────────────────────────
+function showTickPopup(conversations, tickNum){
+  const entries=Object.values(conversations);
+  if(!entries.length) return;
+
+  // Show conversations from this tick (last few)
+  const recent=entries.slice(-4);
+  const body=document.getElementById("tp-body");
+  document.getElementById("tp-title").textContent=`Tick ${tickNum} — Latest Conversations`;
+
+  let html="";
+  recent.forEach(conv=>{
+    const parts=conv.participants||[];
+    html+=`<div class="tp-conv">`;
+    html+=`<div class="tp-conv-header">${conv.timestamp||""} · ${parts.join(" & ")} · ${conv.location||""}</div>`;
+
+    (conv.lines||[]).forEach(line=>{
+      const colon=line.indexOf(":");
+      if(colon<0){html+=`<div class="tp-line"><div class="tp-bubble">${line}</div></div>`;return;}
+      const speaker=line.slice(0,colon).trim().toLowerCase();
+      const text=line.slice(colon+1).trim();
+      const isRight=parts.indexOf(speaker)===1;
+      const col=gc(speaker);
+      html+=`<div class="tp-line ${isRight?"right":""}">`;
+      html+=`<img class="tp-av" src="/static/${speaker}.png" style="border-color:${col}" onerror="this.outerHTML='<div class=\\'tp-av-letter\\' style=\\'background:${col}\\'>${speaker[0]?.toUpperCase()}</div>'"/>`;
+      html+=`<div class="tp-bubble">${text}</div>`;
+      html+=`</div>`;
+    });
+    html+=`</div>`;
+  });
+
+  body.innerHTML=html;
+  document.getElementById("tick-popup").classList.add("show");
+}
+
+function closeTickPopup(){document.getElementById("tick-popup").classList.remove("show")}
+
+// ── Conversations Log ──────────────────────────────────────────────────────
 async function loadConvs(){
   const d=await (await fetch("/api/status")).json();
   const convs=Object.values(d?.conversations||{}).reverse();
   const wrap=document.getElementById("conv-wrap");
   if(!convs.length){wrap.innerHTML='<div class="empty">No conversations yet...</div>';return;}
-  wrap.innerHTML=convs.map(c=>{
-    const lines=(c.lines||[]).map(l=>{
-      const i=l.indexOf(":");
-      return i>-1?`<div class="conv-l"><span class="spk">${l.slice(0,i)}:</span>${l.slice(i+1).trim()}</div>`:`<div class="conv-l">${l}</div>`;
+
+  wrap.innerHTML=convs.map(conv=>{
+    const parts=conv.participants||[];
+    const lines=(conv.lines||[]).map(line=>{
+      const colon=line.indexOf(":");
+      if(colon<0) return `<div class="conv-line"><div class="conv-text">${line}</div></div>`;
+      const speaker=line.slice(0,colon).trim().toLowerCase();
+      const text=line.slice(colon+1).trim();
+      const isRight=parts.indexOf(speaker)===1;
+      const col=gc(speaker);
+      return `<div class="conv-line ${isRight?"right":""}">
+        <img class="conv-av" src="/static/${speaker}.png" style="border:2px solid ${col}" onerror="this.outerHTML='<div class=\\'conv-av-letter\\' style=\\'background:${col}\\'>${speaker[0]?.toUpperCase()}</div>'"/>
+        <div class="conv-text">${text}</div>
+      </div>`;
     }).join("");
-    return `<div class="conv"><div class="conv-m">${c.timestamp||""} · ${(c.participants||[]).join(" & ")} · ${c.location||""}</div>${lines}</div>`;
+
+    return `<div class="conv-entry">
+      <div class="conv-timestamp">⏰ ${conv.timestamp||"—"}</div>
+      <div class="conv-participants">${parts.join(" & ")} · ${conv.location||""}</div>
+      ${lines}
+    </div>`;
   }).join("");
 }
 
 // ── Director ───────────────────────────────────────────────────────────────
+function setDir(el){document.getElementById("d-inst").value=el.textContent}
 async function sendDir(){
   const inst=document.getElementById("d-inst").value.trim();
   const pw=document.getElementById("d-pw").value;
@@ -523,7 +671,7 @@ async function obLogin(){
   document.getElementById("ob-login").style.display="none";
   document.getElementById("ob-chat").style.display="block";
   const col=gc(obAgent);
-  document.getElementById("ob-av2").innerHTML=`<img style="width:38px;height:38px;border-radius:50%;object-fit:cover" src="/static/${obAgent}.png" onerror="this.outerHTML='<div style=\\'width:38px;height:38px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-weight:bold\\'>${obAgent[0].toUpperCase()}</div>'"/>`;
+  document.getElementById("ob-av2").innerHTML=avImg(obAgent,40,`border:2px solid ${col}`);
   document.getElementById("ob-agn").textContent=obAgent[0].toUpperCase()+obAgent.slice(1);
   const s=await (await fetch("/onboard/start")).json();
   obTotal=s.total_questions;
@@ -549,7 +697,7 @@ async function obSend(){
       document.getElementById("ob-dm").textContent=d.reaction;
       document.getElementById("ob-dp").textContent=d.new_prompt_preview;
     },1500);
-  }else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
+  } else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
 }
 
 function addMsg(type,text){
@@ -559,21 +707,18 @@ function addMsg(type,text){
   m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
   log.appendChild(m);log.scrollTop=log.scrollHeight;
 }
-
 function setQ(q,i,t){
   document.getElementById("ob-q").textContent=q;
   document.getElementById("ob-prog").style.width=(i/t*100)+"%";
   document.getElementById("ob-ans").focus();
 }
-
 function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend();}}
 
 // ── Init ───────────────────────────────────────────────────────────────────
-applyTransform();
+applyT();
 loadMap();
 setInterval(()=>{
-  const anyOverlay=document.querySelector(".overlay.on");
-  if(!anyOverlay) loadMap();
+  if(!document.querySelector(".overlay.on")) loadMap();
 },20000);
 </script>
 </body>
