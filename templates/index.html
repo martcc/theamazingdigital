@@ -463,7 +463,8 @@ function buildMap(wd,agents){
     const x=i*(RW+GAP);
     const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
     const rConvs=roomConvs[room.name]||[];
-    const hasConv=rConvs.length>0;
+    const currentTick=cache?.simulation?.meta?.tick_count||0;
+    const hasConv=rConvs.some(c=>c.tick===currentTick);
     if(i<sorted.length-1) html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP}px"></div>`;
     html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:0;width:${RW}px;min-height:${RH}px">`;
     html+=`<div class="room-label">${room.name}</div>`;
@@ -753,8 +754,22 @@ function refreshPanel(aid,agents){
   for(const [o,r] of Object.entries(lt)){
     const ocol=gc(o);
     rh+=`<div class="rel"><div class="rel-header">${av(o,28,`border:2px solid ${ocol}`)}<span class="rel-name" style="color:${ocol}">${o}</span><span class="rel-status">${r.status||r.current_status||"friend"}</span></div>`;
-    [{label:"trust",cls:"t",val:r.trust||0},{label:"friends",cls:"f",val:r.friendship||0},{label:"romantic",cls:"r",val:r.romantic||0},{label:"rivalry",cls:"v",val:r.rivalry||0}].forEach(b=>{
-      rh+=`<div class="bar-row"><span class="bar-label">${b.label}</span><div class="bar-track"><div class="bar-fill ${b.cls}" style="width:${b.val}%"></div></div><span class="bar-num">${b.val}</span></div>`;
+    [{label:"trust",cls:"t",val:r.trust||0,bipolar:true},{label:"friends",cls:"f",val:r.friendship||0,bipolar:true},{label:"romantic",cls:"r",val:r.romantic||0,bipolar:false},{label:"rivalry",cls:"v",val:r.rivalry||0,bipolar:false}].forEach(b=>{
+      const sign=b.val>0?"+":b.val<0?"":""
+      if(b.bipolar){
+        // Center bar — negative goes left, positive goes right
+        const pct=Math.abs(b.val)/50*50; // max 50% from center
+        const isNeg=b.val<0;
+        rh+=`<div class="bar-row"><span class="bar-label">${b.label}</span>
+          <div class="bar-track" style="position:relative">
+            <div style="position:absolute;left:50%;top:0;width:1px;height:100%;background:#333;z-index:1"></div>
+            <div class="bar-fill ${b.cls}" style="position:absolute;${isNeg?`right:50%;width:${pct}%`:`left:50%;width:${pct}%`};top:0;height:100%"></div>
+          </div>
+          <span class="bar-num" style="color:${b.val>0?'var(--green)':b.val<0?'var(--red)':'var(--muted)'}">${b.val>0?'+':''}${b.val}</span></div>`;
+      } else {
+        const pct=b.val/50*100;
+        rh+=`<div class="bar-row"><span class="bar-label">${b.label}</span><div class="bar-track"><div class="bar-fill ${b.cls}" style="width:${pct}%"></div></div><span class="bar-num">${b.val>0?'+':''}${b.val}</span></div>`;
+      }
     });
     rh+=`</div>`;
   }
