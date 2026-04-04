@@ -604,8 +604,15 @@ function buildConvHTML(conv, direction="topdown"){
 function initConvsTab(){
   const wd=cache?.world?.rooms||{};
   const roomNames=Object.values(wd).map(r=>r.name);
-  // Also include any rooms that appear in conversations but might not be in world
   Object.keys(roomConvs).forEach(name=>{if(!roomNames.includes(name)) roomNames.push(name)});
+  // Also include rooms from movement events
+  const events=Object.values(cache?.events||{});
+  events.forEach(e=>{
+    if(e.type==="movement"){
+      if(e.to_room && !roomNames.includes(e.to_room)) roomNames.push(e.to_room);
+      if(e.from_room && !roomNames.includes(e.from_room)) roomNames.push(e.from_room);
+    }
+  });
 
   const tabs=document.getElementById("room-tabs");
   tabs.innerHTML=roomNames.map(name=>{
@@ -632,55 +639,75 @@ function selectRoomTab(roomName){
 
 function renderRoomFeed(roomName){
   const convs=(roomConvs[roomName]||[]);
+  const allEvents=Object.values(cache?.events||{});
+
+  // Get movement events for this room
+  const moveEvents=allEvents.filter(e=>
+    e.type==="movement" && (e.to_room===roomName || e.from_room===roomName)
+  );
+
   const feed=document.getElementById("conv-feed");
 
-  if(!convs.length){
-    feed.innerHTML=`<div class="empty">No conversations in ${roomName} yet.</div>`;
+  if(!convs.length && !moveEvents.length){
+    feed.innerHTML=`<div class="empty">Nothing has happened in ${roomName} yet.</div>`;
     return;
   }
 
-  // Group by tick (approximate — group convs within 20 minutes of each other)
+  // Merge convs and movement events into one timeline
+  const allItems=[
+    ...convs.map(c=>({...c, itemType:"conv"})),
+    ...moveEvents.map(e=>({...e, itemType:"movement"}))
+  ].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
+
+  // Group into tick blocks (20 min windows)
   const groups=[];
   let currentGroup=null;
-
-  // Sort oldest first for grouping
-  const sorted=[...convs].sort((a,b)=>new Date(a.timestamp)-new Date(b.timestamp));
-
-  sorted.forEach(conv=>{
-    const cTime=new Date(conv.timestamp);
-    if(!currentGroup || (cTime-new Date(currentGroup.time))>20*60*1000){
-      currentGroup={time:conv.timestamp,convs:[]};
+  allItems.forEach(item=>{
+    const t=new Date(item.timestamp);
+    if(!currentGroup||(t-new Date(currentGroup.time))>20*60*1000){
+      currentGroup={time:item.timestamp,items:[]};
       groups.push(currentGroup);
     }
-    currentGroup.convs.push(conv);
+    currentGroup.items.push(item);
   });
 
-  // Render newest group at top
   const reversed=[...groups].reverse();
 
   feed.innerHTML=reversed.map((group,gi)=>{
     const tickNum=reversed.length-gi;
-    const parts=[...new Set(group.convs.flatMap(c=>c.participants||[]))];
+    const convItems=group.items.filter(i=>i.itemType==="conv");
+    const parts=[...new Set(convItems.flatMap(c=>c.participants||[]))];
 
     let html=`<div class="tick-block">`;
     html+=`<div class="tick-header">
       <div class="tick-label">Tick ${tickNum}</div>
       <div class="tick-time">⏰ ${group.time}</div>
-      <div class="tick-participants">${parts.join(", ")}</div>
+      ${parts.length?`<div class="tick-participants">${parts.join(", ")}</div>`:""}
     </div>`;
 
-    // Each conversation in this tick block — bottomup reading
-    group.convs.forEach(conv=>{
-      const cparts=conv.participants||[];
-      html+=`<div class="tick-conv">`;
-
-      // People chips
-      html+=`<div class="conv-people">`;
-      cparts.forEach(p=>html+=`<div class="conv-person-chip">${av(p,20,`border:1.5px solid ${gc(p)}`)} ${p}</div>`);
-      html+=`</div>`;
-
-      html+=buildConvHTML(conv,"bottomup");
-      html+=`</div>`;
+    group.items.forEach(item=>{
+      if(item.itemType==="movement"){
+        // Movement event display
+        const isEntering=item.to_room===roomName;
+        const col=gc(item.agent);
+        html+=`<div class="movement-event">
+          ${av(item.agent,28,`border:2px solid ${col};margin-right:.5rem;vertical-align:middle`)}
+          ${isEntering
+            ? `<strong style="color:${col}">${item.agent}</strong> entered from <span style="color:var(--muted)">${item.from_room}</span>`
+            : `<strong style="color:${col}">${item.agent}</strong> left to <span style="color:var(--muted)">${item.to_room}</span>`
+          }
+          <span style="font-size:.72rem;color:var(--muted);margin-left:.5rem">${item.timestamp}</span>
+        </div>`;
+      } else {
+        // Conversation
+        const cparts=item.participants||[];
+        html+=`<div class="tick-conv">`;
+        html+=`<div class="conv-people">`;
+        cparts.forEach(p=>html+=`<div class="conv-person-chip">${av(p,20,`border:1.5px solid ${gc(p)}`)} ${p}</div>`);
+        html+=`</div>`;
+        html+=buildConvHTML(item,"bottomup");
+        html+=`</div>`;
+      }
     });
 
     html+=`</div>`;
