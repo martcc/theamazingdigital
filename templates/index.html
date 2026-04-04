@@ -285,6 +285,7 @@
       <a id="n-convs" onclick="showOverlay('convs')">Conversations</a>
       <a id="n-dir" onclick="showOverlay('dir')">Director</a>
       <a id="n-ob" onclick="showOverlay('ob')">Onboard</a>
+      <a id="n-summary" onclick="showOverlay('summary')">Summary</a>
     </div>
   </div>
   <div class="meta">
@@ -331,6 +332,18 @@
     <div class="room-tabs" id="room-tabs"></div>
   </div>
   <div id="conv-feed"><div class="empty" style="padding:2rem">Select a room above</div></div>
+</div>
+
+<!-- SUMMARY OVERLAY -->
+<div class="overlay" id="summary-overlay">
+  <div style="padding:1.5rem 2rem 0;flex-shrink:0;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:2;padding-bottom:1rem">
+    <div style="font-size:1.1rem;font-weight:bold;margin-bottom:.25rem">Daily Summary</div>
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:.8rem">Hourly summaries of what happened today. Updates every tick.</div>
+    <div style="font-size:.68rem;color:var(--muted)">Latest hour updates live — previous hours are finalized.</div>
+  </div>
+  <div id="summary-feed" style="padding:1.5rem 2rem 4rem;max-width:720px;display:flex;flex-direction:column;gap:1.2rem">
+    <div class="empty">No summaries yet...</div>
+  </div>
 </div>
 
 <!-- DIRECTOR OVERLAY -->
@@ -425,6 +438,7 @@ function showOverlay(n){
   document.getElementById(n+"-overlay").classList.add("on");
   document.getElementById("n-"+n).classList.add("on");
   if(n==="convs") initConvsTab();
+  if(n==="summary") loadSummary();
 }
 
 //  Load Map 
