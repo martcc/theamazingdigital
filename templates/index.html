@@ -457,7 +457,7 @@ async function loadMap(){
 function buildMap(wd,agents){
   const rooms=wd.rooms,pos=wd.agent_positions||{};
   const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
-  const RW=480,RH=360,GAP=90;
+  const RW=400,RH=360,GAP=70;
   let html="";
   sorted.forEach(([rid,room],i)=>{
     const x=i*(RW+GAP);
