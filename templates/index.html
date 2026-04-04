@@ -484,7 +484,7 @@ function buildMap(wd,agents){
       html+=`</div>`;
     });
     html+=`</div>`;
-    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">💬</div>`;
+    html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">💬${hasConv?'<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>':''}</div>`;
     html+=`</div></div>`;
   });
   mapWorld.innerHTML=html;
