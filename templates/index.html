@@ -381,6 +381,7 @@
     </div>
   </div>
   <div id="ob-chat" style="display:none">
+    <div id="ob-session-badge" style="display:none;font-size:.63rem;color:var(--accent);background:rgba(139,127,255,.08);border:1px solid var(--accent);padding:.2rem .7rem;margin-bottom:.8rem;letter-spacing:.08em;max-width:fit-content"></div><div id="ob-session-badge" style="display:none;font-size:.65rem;color:var(--accent);background:rgba(139,127,255,.1);border:1px solid var(--accent);padding:.2rem .6rem;margin-bottom:.8rem;letter-spacing:.08em"></div>
     <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:1.2rem">
       <div id="ob-av2"></div>
       <div><div style="font-weight:bold;font-size:.95rem" id="ob-agn"></div><div style="font-size:.65rem;color:var(--muted)">digital self — onboarding</div></div>
@@ -822,6 +823,8 @@ async function sendDir(){
 }
 
 //  Onboard 
+let obCount=0, obSessionCount=0;
+
 async function obLogin(){
   const name=document.getElementById("ob-n").value.trim().toLowerCase();
   const pw=document.getElementById("ob-pw").value;
@@ -832,14 +835,27 @@ async function obLogin(){
   const d=await (await fetch("/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({agent:name,password:pw})})).json();
   if(!d.success){err.textContent=d.error;btn.disabled=false;btn.textContent="Enter →";return;}
   obAgent=d.agent;
+  obSessionCount=d.session_count||0;
   document.getElementById("ob-login").style.display="none";
   document.getElementById("ob-chat").style.display="block";
   const col=gc(obAgent);
   document.getElementById("ob-av2").innerHTML=av(obAgent,40,`border:2px solid ${col}`);
   document.getElementById("ob-agn").textContent=obAgent[0].toUpperCase()+obAgent.slice(1);
+  const badge=document.getElementById("ob-session-badge");
+  if(obSessionCount>0){
+    badge.textContent=`Session ${obSessionCount+1} · ${obSessionCount} prior session${obSessionCount>1?"s":""}`;
+    badge.style.display="block";
+  } else {
+    badge.textContent="Session 1 · First time";
+    badge.style.display="block";
+  }
   const s=await (await fetch("/onboard/start")).json();
-  obTotal=s.total_questions;addMsg("ai",s.message);setTimeout(()=>setQ(s.question,0,obTotal),400);
+  obTotal=s.total_this_session||12;
+  obCount=0;
+  addMsg("ai",s.opening);
+  setTimeout(()=>setQ(s.question,0,obTotal),700);
 }
+
 async function obSend(){
   const ta=document.getElementById("ob-ans"),ans=ta.value.trim();
   if(!ans) return;
@@ -849,17 +865,34 @@ async function obSend(){
   const d=await (await fetch("/onboard/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:ans})})).json();
   document.getElementById("ob-typing").style.display="none";
   document.getElementById("ob-send").disabled=false;
+  obCount++;
   addMsg("ai",d.reaction);
-  if(d.done){setTimeout(()=>{document.getElementById("ob-chat").style.display="none";document.getElementById("ob-done").style.display="block";document.getElementById("ob-dm").textContent=d.reaction;document.getElementById("ob-dp").textContent=d.new_prompt_preview},1500)}
-  else setTimeout(()=>setQ(d.question,d.question_index,obTotal),400);
+  if(d.done){
+    setTimeout(()=>{
+      document.getElementById("ob-chat").style.display="none";
+      document.getElementById("ob-done").style.display="block";
+      document.getElementById("ob-dm").textContent=d.reaction;
+      document.getElementById("ob-dp").textContent=d.new_prompt_preview;
+    },2000);
+  } else {
+    setTimeout(()=>setQ(d.question,d.questions_this_session,obTotal),400);
+  }
 }
+
 function addMsg(type,text){
   const log=document.getElementById("ob-msgs"),m=document.createElement("div");
   m.className=`msg2 ${type}`;
-  m.innerHTML=`<div class="sp">${type==="ai"?obAgent+" (digital)":"You"}</div><div class="bb">${text}</div>`;
+  const label=type==="ai"?`${obAgent} (digital)`:"you";
+  m.innerHTML=`<div class="sp">${label}</div><div class="bb">${text.replace(/\n/g,"<br>")}</div>`;
   log.appendChild(m);log.scrollTop=log.scrollHeight;
 }
-function setQ(q,i,t){document.getElementById("ob-q").textContent=q;document.getElementById("ob-prog").style.width=(i/t*100)+"%";document.getElementById("ob-ans").focus()}
+
+function setQ(q,i,t){
+  document.getElementById("ob-q").textContent=q;
+  document.getElementById("ob-prog").style.width=Math.min((i/t)*100,100)+"%";
+  document.getElementById("ob-ans").focus();
+}
+
 function obKey(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();obSend()}}
 
 //  Init 
