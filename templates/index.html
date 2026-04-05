@@ -471,17 +471,20 @@ async function loadMap(){
 
 function buildMap(wd,agents){
   const rooms=wd.rooms,pos=wd.agent_positions||{};
-  const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
-  const RW=400,RH=360,GAP=70;
+  const RW=400,RH=340,GAP=60;
   let html="";
-  sorted.forEach(([rid,room],i)=>{
-    const x=i*(RW+GAP);
+  Object.entries(rooms).forEach(([rid,room])=>{
+    const rx=(room.position?.x||0);
+    const ry=(room.position?.y||0);
+    const x=rx*(RW+GAP);
+    const y=ry*(RH+GAP);
+    const i=rx; // keep i for connector logic
     const here=Object.entries(pos).filter(([a,r])=>r===rid).map(([a])=>a);
     const rConvs=roomConvs[room.name]||[];
     const currentTick=cache?.simulation?.meta?.tick_count||0;
     const hasConv=rConvs.some(c=>c.tick===currentTick);
-    if(i<sorted.length-1) html+=`<div class="connector-line h" style="left:${x+RW}px;top:${RH/2}px;width:${GAP}px"></div>`;
-    html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:0;width:${RW}px;min-height:${RH}px">`;
+    // Connectors drawn separately below
+    html+=`<div class="room ${here.length?"occupied":""}" style="left:${x}px;top:${y}px;width:${RW}px;min-height:${RH}px;z-index:1">`;
     html+=`<div class="room-label">${room.name}</div>`;
     html+=`<div class="room-desc">${room.description}</div>`;
     if(room.objects?.length){
@@ -508,9 +511,23 @@ function buildMap(wd,agents){
     html+=`<div class="conv-room-icon ${hasConv?"has-conv":""}" onclick="openRoomConvModal('${room.name.replace(/'/g,"\\'")}')">&#9656;${hasConv?'<div style="position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent)"></div>':''}</div>`;
     html+=`</div></div>`;
   });
+  // Draw connectors between living room and each other room
+  const lr=rooms["living_room"];
+  if(lr){
+    Object.entries(rooms).forEach(([rid,room])=>{
+      if(rid==="living_room") return;
+      const rx=(room.position?.x||0), ry=(room.position?.y||0);
+      const lx=(lr.position?.x||0), ly=(lr.position?.y||0);
+      const x1=lx*(RW+GAP)+RW/2, y1=ly*(RH+GAP)+RH/2;
+      const x2=rx*(RW+GAP)+RW/2, y2=ry*(RH+GAP)+RH/2;
+      const len=Math.sqrt((x2-x1)**2+(y2-y1)**2);
+      const angle=Math.atan2(y2-y1,x2-x1)*180/Math.PI;
+      html+=`<div style="position:absolute;left:${x1}px;top:${y1}px;width:${len}px;height:1px;background:var(--border);transform-origin:0 0;transform:rotate(${angle}deg);z-index:0"></div>`;
+    });
+  }
   mapWorld.innerHTML=html;
-  mapWorld.style.width=(sorted.length*(RW+GAP))+"px";
-  mapWorld.style.height=(RH+60)+"px";
+  mapWorld.style.width=(3*(RW+GAP))+"px";
+  mapWorld.style.height=(3*(RH+GAP))+"px";
   if(sel) refreshPanel(sel,agents);
 }
 
