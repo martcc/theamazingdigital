@@ -384,7 +384,7 @@ async function loadMap(){
 
 function buildRooms(wd,agents){
   const rooms=wd.rooms, pos=wd.agent_positions||{};
-  const sorted=Object.entries(rooms).sort((a,b)=>(a[1].position?.x||0)-(b[1].position?.x||0));
+  const sorted=Object.entries(rooms).sort((a,b)=>((a[1].position?.y||0)-(b[1].position?.y||0))||((a[1].position?.x||0)-(b[1].position?.x||0)));
   const currentTick=cache?.simulation?.meta?.tick_count||0;
 
   document.getElementById("rooms-list").innerHTML=sorted.map(([rid,room])=>{
